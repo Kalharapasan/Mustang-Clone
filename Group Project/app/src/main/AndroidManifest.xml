@@ -12,6 +12,18 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Mustang_Clone">
         <activity
+            android:name=".Car_Update"
+            android:exported="false" />
+        <activity
+            android:name=".Car_Add"
+            android:exported="false" />
+        <activity
+            android:name=".Category_Update"
+            android:exported="false" />
+        <activity
+            android:name=".Category_Add"
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>

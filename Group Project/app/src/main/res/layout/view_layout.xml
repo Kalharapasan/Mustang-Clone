@@ -11,7 +11,9 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginTop="20dp"
-        android:background="@drawable/rounded_card_background" android:paddingBottom="16dp" app:layout_constraintEnd_toEndOf="parent"
+        android:background="@drawable/rounded_card_background"
+        android:paddingBottom="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -40,10 +42,13 @@
 
         <RatingBar
             android:id="@+id/ratingBarID"
-            android:layout_below="@+id/model_name_ID"
-            android:layout_alignLeft="@id/model_name_ID"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_below="@+id/model_name_ID"
+            android:layout_alignLeft="@id/model_name_ID"
+            android:scaleX="0.5"
+            android:scaleY="0.5"
+            android:transformPivotX="0dp"
             tools:layout_editor_absoluteX="73dp"
             tools:layout_editor_absoluteY="611dp" />
 
