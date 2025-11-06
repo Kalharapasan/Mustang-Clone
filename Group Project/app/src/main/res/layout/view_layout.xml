@@ -86,6 +86,31 @@
             />
 
         <TextView
+            android:id="@+id/color"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Color"
+            android:layout_below="@id/image3dID"
+            android:textStyle="bold"
+            android:textSize="20dp"
+            android:layout_toRightOf="@id/model_name_ID"
+            android:layout_marginLeft="70dp"
+            android:textColor="@color/black"
+            />
+
+        <TextView
+            android:id="@+id/color_ID"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Black"
+            android:layout_below="@id/image3dID"
+            android:layout_marginLeft="10dp"
+            android:layout_toRightOf="@id/color"
+            android:textSize="20dp"
+            android:textColor="@color/black"
+            />
+
+        <TextView
             android:id="@+id/generation"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
