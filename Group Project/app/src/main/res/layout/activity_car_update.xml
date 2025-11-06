@@ -235,7 +235,7 @@
                 android:background="@drawable/blur_background"
                 android:elevation="4dp"
                 android:ems="10"
-                android:hint="Color (e.g., Race Red)"
+                android:hint="Color (e.g., Race Black)"
                 android:inputType="text"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
