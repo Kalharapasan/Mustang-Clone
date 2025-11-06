@@ -13,9 +13,6 @@ import androidx.core.view.WindowInsetsCompat;
 
 public class Car_Add extends AppCompatActivity {
 
-
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
