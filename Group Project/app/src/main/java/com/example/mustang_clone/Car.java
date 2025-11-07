@@ -10,10 +10,13 @@ public class Car {
     private String horsepower;
     private String transmission;
     private String color;
+    private String carImg; // Base64 encoded image
     private int categoryID;
     private double rating;
 
-    public Car(int carID, String carName, String carModel, String year, String generation, String engineType, String horsepower, String transmission, String color, int categoryID, double rating) {
+    public Car(int carID, String carName, String carModel, String year, String generation,
+               String engineType, String horsepower, String transmission, String color,
+               String carImg, int categoryID, double rating) {
         this.carID = carID;
         this.carName = carName;
         this.carModel = carModel;
@@ -23,6 +26,7 @@ public class Car {
         this.horsepower = horsepower;
         this.transmission = transmission;
         this.color = color;
+        this.carImg = carImg;
         this.categoryID = categoryID;
         this.rating = rating;
     }
@@ -97,6 +101,14 @@ public class Car {
 
     public void setColor(String color) {
         this.color = color;
+    }
+
+    public String getCarImg() {
+        return carImg;
+    }
+
+    public void setCarImg(String carImg) {
+        this.carImg = carImg;
     }
 
     public int getCategoryID() {

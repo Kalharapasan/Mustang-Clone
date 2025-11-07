@@ -1,7 +1,5 @@
 package com.example.mustang_clone;
 
-import android.content.Intent;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
@@ -17,6 +15,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import android.database.Cursor;
 
 public class Category extends AppCompatActivity {
 
@@ -33,70 +32,88 @@ public class Category extends AppCompatActivity {
 
         recyclerView = findViewById(R.id.main);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-
         addCategoryBtn = findViewById(R.id.addCategoryBtn);
 
         dbHelp = new DBHelp(this);
+        categoryList = new ArrayList<>();
 
         loadCategories();
 
-        // Example: add sample data if table is empty
+        // Add sample data if empty
         if (categoryList.isEmpty()) {
             addSampleCategory();
             loadCategories();
         }
 
-        // Add Category Button Click
         addCategoryBtn.setOnClickListener(v -> {
-            Intent intent = new Intent(Category.this, Category_Add.class);
-            startActivity(intent);
+            startActivity(new android.content.Intent(Category.this, Category_Add.class));
         });
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        // Reload categories when returning from Add/Update activity
         loadCategories();
     }
 
     private void loadCategories() {
         categoryList = new ArrayList<>();
-        Cursor cursor = dbHelp.getAllCategories();
+        Cursor cursor = null;
 
-        if (cursor.moveToFirst()) {
-            do {
-                int id = cursor.getInt(0);
-                byte[] imgBytes = cursor.getBlob(2);
-                String name = cursor.getString(1);
-                String model = cursor.getString(3);
+        try {
+            cursor = dbHelp.getAllCategories();
 
-                String encodedImage = "";
-                if (imgBytes != null) {
-                    encodedImage = Base64.encodeToString(imgBytes, Base64.DEFAULT);
-                }
+            if (cursor != null && cursor.moveToFirst()) {
+                do {
+                    int idIndex = cursor.getColumnIndex("categoryID");
+                    int nameIndex = cursor.getColumnIndex("categoryName");
+                    int imgIndex = cursor.getColumnIndex("categoryImg");
+                    int modelIndex = cursor.getColumnIndex("categoryModel");
 
-                categoryList.add(new CategoryItem(id, encodedImage, name, model));
+                    if (idIndex == -1 || nameIndex == -1 || imgIndex == -1 || modelIndex == -1) {
+                        Toast.makeText(this, "Error: Missing DB column", Toast.LENGTH_SHORT).show();
+                        continue;
+                    }
 
-            } while (cursor.moveToNext());
+                    int id = cursor.getInt(idIndex);
+                    String name = cursor.getString(nameIndex);
+                    String model = cursor.getString(modelIndex);
+
+                    String encodedImage = "";
+                    byte[] imgBytes = cursor.getBlob(imgIndex);
+                    if (imgBytes != null && imgBytes.length > 0) {
+                        encodedImage = Base64.encodeToString(imgBytes, Base64.DEFAULT);
+                    }
+
+                    categoryList.add(new CategoryItem(id, encodedImage, name, model));
+
+                } while (cursor.moveToNext());
+            } else {
+                // it's okay if no categories yet
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Error loading categories: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        } finally {
+            if (cursor != null) cursor.close();
         }
-
-        cursor.close();
 
         adapter = new CategoryAdapter(this, categoryList);
         recyclerView.setAdapter(adapter);
     }
 
     private void addSampleCategory() {
-        Bitmap bmp = BitmapFactory.decodeResource(getResources(), R.drawable.cobramustang);
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        bmp.compress(Bitmap.CompressFormat.PNG, 100, stream);
-        byte[] imgBytes = stream.toByteArray();
+        try {
+            Bitmap bmp = BitmapFactory.decodeResource(getResources(), R.drawable.cobramustang);
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            bmp.compress(Bitmap.CompressFormat.PNG, 100, stream);
+            byte[] imgBytes = stream.toByteArray();
 
-        long id = dbHelp.addCategory("Mustang", imgBytes, "Cobra Model");
-
-        if (id > 0) {
-            Toast.makeText(this, "Sample category added", Toast.LENGTH_SHORT).show();
+            long id = dbHelp.addCategory("Mustang", imgBytes, "Cobra Model");
+            if (id > 0) Toast.makeText(this, "Sample category added", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

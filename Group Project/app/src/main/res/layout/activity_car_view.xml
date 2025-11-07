@@ -35,7 +35,7 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <TextView
-            android:id="@+id/model_name_ID"
+            android:id="@+id/carNameTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginLeft="18dp"
@@ -51,258 +51,170 @@
             android:layout_height="40dp"
             android:layout_marginTop="10dp"
             android:layout_marginLeft="170dp"
-            android:layout_toRightOf="@id/model_name_ID"
-            app:srcCompat="@drawable/hearticon"
-            tools:layout_editor_absoluteX="141dp"
-            tools:layout_editor_absoluteY="204dp" />
+            android:layout_toRightOf="@id/carNameTextView"
+            app:srcCompat="@drawable/hearticon" />
 
         <RatingBar
             android:id="@+id/ratingBarID"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@+id/model_name_ID"
-            android:layout_alignLeft="@id/model_name_ID"
+            android:layout_below="@+id/carNameTextView"
+            android:layout_alignLeft="@id/carNameTextView"
             android:scaleX="0.5"
-            android:scaleY="0.5"
-            android:transformPivotX="0dp"
-            tools:layout_editor_absoluteX="73dp"
-            tools:layout_editor_absoluteY="611dp" />
+            android:scaleY="0.5" />
+
+        <!-- Added rating TextView for Java code compatibility -->
+        <TextView
+            android:id="@+id/ratingTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/ratingBarID"
+            android:layout_alignLeft="@id/ratingBarID"
+            android:text="Rating: 5 ⭐"
+            android:textColor="@color/black"
+            android:textSize="16sp"
+            android:layout_marginTop="5dp" />
 
         <ImageView
-            android:id="@+id/image3dID"
+            android:id="@+id/carImageView"
             android:layout_width="wrap_content"
             android:layout_height="250dp"
-            app:srcCompat="@drawable/cobramustanf3d"
-            android:layout_below="@id/model_name_ID"
-            tools:layout_editor_absoluteX="141dp"
-            tools:layout_editor_absoluteY="204dp" />
+            android:layout_below="@id/ratingTextView"
+            app:srcCompat="@drawable/cobramustanf3d" />
 
         <TextView
-            android:id="@+id/year"
+            android:id="@+id/yearTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Year"
-            android:layout_below="@id/image3dID"
+            android:text="Year: 2023"
+            android:layout_below="@id/carImageView"
+            android:layout_marginTop="10dp"
+            android:layout_alignLeft="@id/carNameTextView"
             android:textStyle="bold"
             android:textSize="20dp"
-            android:layout_alignLeft="@id/model_name_ID"
-            android:textColor="@color/black"
-            />
+            android:textColor="@color/black" />
 
         <TextView
-            android:id="@+id/year_ID"
+            android:id="@+id/colorTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="2023"
-            android:layout_below="@id/image3dID"
-            android:layout_marginLeft="10dp"
-            android:layout_toRightOf="@id/year"
-            android:textSize="20dp"
-            android:textColor="@color/black"
-            />
-
-        <TextView
-            android:id="@+id/color"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Color"
-            android:layout_below="@id/image3dID"
+            android:text="Color: Black"
+            android:layout_below="@id/carImageView"
+            android:layout_marginTop="10dp"
+            android:layout_marginLeft="200dp"
             android:textStyle="bold"
             android:textSize="20dp"
-            android:layout_toRightOf="@id/model_name_ID"
-            android:layout_marginLeft="70dp"
-            android:textColor="@color/black"
-            />
+            android:textColor="@color/black" />
 
         <TextView
-            android:id="@+id/color_ID"
+            android:id="@+id/generationTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Black"
-            android:layout_below="@id/image3dID"
-            android:layout_marginLeft="10dp"
-            android:layout_toRightOf="@id/color"
-            android:textSize="20dp"
-            android:textColor="@color/black"
-            />
-
-        <TextView
-            android:id="@+id/generation"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Generation"
-            android:layout_below="@id/year"
-            android:layout_alignLeft="@id/year"
+            android:text="Generation: 6th"
+            android:layout_below="@id/yearTextView"
+            android:layout_alignLeft="@id/yearTextView"
             android:textStyle="bold"
             android:textSize="20dp"
-            android:textColor="@color/black"
-            />
-
-        <TextView
-            android:id="@+id/generation_ID"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="6th Generation"
-            android:layout_below="@id/year"
-            android:layout_toRightOf="@id/generation"
-            android:layout_marginLeft="10dp"
-            android:textSize="20dp"
-            android:textColor="@color/black"
-            />
+            android:textColor="@color/black" />
 
         <ImageView
             android:id="@+id/engineicon"
             android:layout_width="70dp"
             android:layout_height="70dp"
-            app:srcCompat="@drawable/carengineicon"
+            android:layout_below="@id/generationTextView"
             android:layout_marginLeft="45dp"
             android:layout_marginTop="20dp"
-            android:layout_below="@id/generation"
-            tools:layout_editor_absoluteX="141dp"
-            tools:layout_editor_absoluteY="204dp" />
+            app:srcCompat="@drawable/carengineicon" />
 
         <TextView
+            android:id="@+id/engineTypeTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/engine_Type"
-            android:text="Engine Type"
             android:layout_below="@id/engineicon"
+            android:layout_alignLeft="@id/engineicon"
+            android:text="Engine: 5.0L V8"
             android:textColor="@color/black"
             android:textStyle="bold"
             android:textSize="15dp"
-            android:layout_marginTop="5dp"
-            android:layout_alignLeft="@id/engineicon"
-            />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/engine_Type_ID"
-            android:text="5.0L V8"
-            android:layout_below="@id/engine_Type"
-            android:textColor="@color/black"
-            android:textSize="15dp"
-            android:layout_marginTop="5dp"
-            android:layout_alignLeft="@id/engine_Type"
-            />
+            android:layout_marginTop="5dp" />
 
         <ImageView
             android:id="@+id/speedicon"
             android:layout_width="70dp"
             android:layout_height="70dp"
-            app:srcCompat="@drawable/speed"
             android:layout_toRightOf="@id/engineicon"
             android:layout_marginTop="20dp"
             android:layout_marginLeft="40dp"
-            android:layout_below="@id/generation"
-            tools:layout_editor_absoluteX="141dp"
-            tools:layout_editor_absoluteY="204dp" />
+            android:layout_below="@id/generationTextView"
+            app:srcCompat="@drawable/speed" />
 
         <TextView
+            android:id="@+id/horsepowerTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/speed"
-            android:text="Speed"
-            android:layout_below="@id/engineicon"
+            android:layout_below="@id/speedicon"
+            android:layout_alignLeft="@id/speedicon"
+            android:text="Power: 450 HP"
             android:textColor="@color/black"
             android:textStyle="bold"
             android:textSize="15dp"
-            android:layout_alignLeft="@id/speedicon"
-            android:layout_marginLeft="5dp"
-            android:layout_marginTop="5dp"
-            />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/speed_ID"
-            android:text="450 HP"
-            android:layout_below="@id/engine_Type"
-            android:textColor="@color/black"
-            android:textSize="15dp"
-            android:layout_marginTop="5dp"
-            android:layout_alignLeft="@id/speed"
-            />
+            android:layout_marginTop="5dp" />
 
         <ImageView
             android:id="@+id/transmisionicon"
             android:layout_width="70dp"
             android:layout_height="70dp"
-            app:srcCompat="@drawable/transmission"
             android:layout_toRightOf="@id/speedicon"
             android:layout_marginTop="20dp"
             android:layout_marginLeft="40dp"
-            android:layout_below="@id/generation"
-            tools:layout_editor_absoluteX="141dp"
-            tools:layout_editor_absoluteY="204dp" />
+            android:layout_below="@id/generationTextView"
+            app:srcCompat="@drawable/transmission" />
 
         <TextView
+            android:id="@+id/transmissionTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/transmission"
-            android:text="Transmission"
-            android:layout_below="@id/engineicon"
+            android:layout_below="@id/transmisionicon"
+            android:layout_alignLeft="@id/transmisionicon"
+            android:text="Transmission: Manual"
             android:textColor="@color/black"
             android:textStyle="bold"
             android:textSize="15dp"
-            android:layout_alignLeft="@id/transmisionicon"
-            android:layout_marginTop="5dp"
-            android:layout_marginLeft="5dp"
-            />
+            android:layout_marginTop="5dp" />
 
         <TextView
+            android:id="@+id/carModelTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/transmission_ID"
-            android:text="6-speed \nmanual"
-            android:layout_below="@id/engine_Type"
-            android:textColor="@color/black"
-            android:textSize="15dp"
-            android:layout_marginTop="5dp"
-            android:layout_alignLeft="@id/transmission"
-            />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/description_ID"
-            android:text="“The 2024 Mustang GT combines classic American muscle with modern tech, offering a thrilling driving experience.”"
-            android:layout_below="@id/engine_Type_ID"
-            android:textColor="@color/black"
-            android:textSize="15dp"
-            android:layout_marginTop="30dp"
+            android:layout_below="@id/transmissionTextView"
             android:layout_centerHorizontal="true"
-            android:layout_marginLeft="20dp"
-            android:textAlignment="center"
-            />
-
-        <ImageView
-            android:id="@+id/delete_Btn_ID"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            app:srcCompat="@drawable/deleteicon"
-            tools:layout_editor_absoluteX="83dp"
-            tools:layout_editor_absoluteY="340dp"
-            android:layout_below="@id/description_ID"
-            android:layout_alignParentRight="true"
-            android:layout_marginRight="30dp"
-            android:layout_marginTop="10dp"
-            android:alpha="0.7"
-            />
+            android:layout_marginTop="20dp"
+            android:text="Model: GT"
+            android:textColor="@color/black"
+            android:textSize="18dp"
+            android:textAlignment="center" />
 
         <ImageView
             android:id="@+id/edit_Btn_ID"
             android:layout_width="50dp"
             android:layout_height="50dp"
-            app:srcCompat="@drawable/editicon"
-            tools:layout_editor_absoluteX="83dp"
-            tools:layout_editor_absoluteY="340dp"
-            android:layout_below="@id/description_ID"
+            android:layout_below="@id/carModelTextView"
             android:layout_marginTop="10dp"
-            android:layout_toLeftOf="@id/delete_Btn_ID"
-            android:layout_marginRight="20dp"
+            android:layout_alignParentEnd="true"
+            android:layout_marginEnd="80dp"
             android:alpha="0.7"
-            />
+            app:srcCompat="@drawable/editicon" />
+
+        <ImageView
+            android:id="@+id/delete_Btn_ID"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_below="@id/carModelTextView"
+            android:layout_marginTop="10dp"
+            android:layout_alignParentEnd="true"
+            android:layout_marginEnd="20dp"
+            android:alpha="0.7"
+            app:srcCompat="@drawable/deleteicon" />
 
     </RelativeLayout>
 

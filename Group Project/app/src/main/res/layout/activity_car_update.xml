@@ -7,8 +7,9 @@
     android:layout_height="match_parent"
     android:background="@drawable/gradient_black_blue"
     tools:context=".Car_Update">
+
     <TextView
-        android:id="@+id/addCar"
+        android:id="@+id/updateCar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="UPDATE CAR"
@@ -60,7 +61,7 @@
         app:layout_constraintBottom_toTopOf="@+id/addCategoryButtonID"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/addCar">
+        app:layout_constraintTop_toBottomOf="@+id/updateCar">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
@@ -235,7 +236,7 @@
                 android:background="@drawable/blur_background"
                 android:elevation="4dp"
                 android:ems="10"
-                android:hint="Color (e.g., Race Black)"
+                android:hint="Color (e.g., Race Red)"
                 android:inputType="text"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
@@ -269,6 +270,5 @@
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </ScrollView>
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>
