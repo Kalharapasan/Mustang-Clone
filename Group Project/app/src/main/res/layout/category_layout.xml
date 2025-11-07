@@ -78,6 +78,34 @@
             android:textColor="@color/black"
             android:textSize="20dp" />
 
+        <ImageView
+            android:id="@+id/delete_Btn_ID"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            app:srcCompat="@drawable/deleteicon"
+            tools:layout_editor_absoluteX="83dp"
+            tools:layout_editor_absoluteY="340dp"
+            android:layout_below="@id/image1"
+            android:layout_alignParentRight="true"
+            android:layout_marginRight="10dp"
+            android:layout_marginTop="10dp"
+            android:alpha="0.7"
+            />
+
+        <ImageView
+            android:id="@+id/edit_Btn_ID"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            app:srcCompat="@drawable/editicon"
+            tools:layout_editor_absoluteX="83dp"
+            tools:layout_editor_absoluteY="340dp"
+            android:layout_below="@id/delete_Btn_ID"
+            android:layout_alignParentRight="true"
+            android:layout_marginRight="10dp"
+            android:layout_marginTop="10dp"
+            android:alpha="0.7"
+            />
+
     </RelativeLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

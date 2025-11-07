@@ -21,7 +21,7 @@ public class DBHelp extends SQLiteOpenHelper {
     // Category Table Columns
     private static final String KEY_CATEGORY_ID = "categoryID";
     private static final String KEY_CATEGORY_NAME = "categoryName";
-    private static final String KEY_CATEGORY_IMG = "categoryImg";
+    private static final String KEY_CATEGORY_IMG = "categoryImg"; // BLOB (for image)
     private static final String KEY_CATEGORY_MODEL = "categoryModel";
 
     // Car Table Columns
@@ -34,6 +34,7 @@ public class DBHelp extends SQLiteOpenHelper {
     private static final String KEY_HORSEPOWER = "horsepower";
     private static final String KEY_TRANSMISSION = "transmission";
     private static final String KEY_COLOR = "color";
+    private static final String KEY_IMG = "img"; // BLOB for image
     private static final String KEY_CATEGORY_REF_ID = "categoryID"; // Foreign Key
     private static final String KEY_RATING = "rating";
 
@@ -48,7 +49,7 @@ public class DBHelp extends SQLiteOpenHelper {
         String CREATE_CATEGORY_TABLE = "CREATE TABLE " + TABLE_CATEGORY + " ("
                 + KEY_CATEGORY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + KEY_CATEGORY_NAME + " TEXT, "
-                + KEY_CATEGORY_IMG + " TEXT, "
+                + KEY_CATEGORY_IMG + " BLOB, "
                 + KEY_CATEGORY_MODEL + " TEXT"
                 + ")";
 
@@ -63,6 +64,7 @@ public class DBHelp extends SQLiteOpenHelper {
                 + KEY_HORSEPOWER + " TEXT, "
                 + KEY_TRANSMISSION + " TEXT, "
                 + KEY_COLOR + " TEXT, "
+                + KEY_IMG + " BLOB, "
                 + KEY_CATEGORY_REF_ID + " INTEGER, "
                 + KEY_RATING + " REAL, "
                 + "FOREIGN KEY(" + KEY_CATEGORY_REF_ID + ") REFERENCES " + TABLE_CATEGORY + "(" + KEY_CATEGORY_ID + ")"
@@ -81,11 +83,11 @@ public class DBHelp extends SQLiteOpenHelper {
         onCreate(db);
     }
 
+    // =============================
     // CATEGORY CRUD OPERATIONS
+    // =============================
 
-
-    // Insert Category
-    public long addCategory(String name, String img, String model) {
+    public long addCategory(String name, byte[] img, String model) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(KEY_CATEGORY_NAME, name);
@@ -96,14 +98,12 @@ public class DBHelp extends SQLiteOpenHelper {
         return id;
     }
 
-    // Get All Categories
     public Cursor getAllCategories() {
         SQLiteDatabase db = this.getReadableDatabase();
         return db.rawQuery("SELECT * FROM " + TABLE_CATEGORY, null);
     }
 
-    // Update Category
-    public int updateCategory(int id, String name, String img, String model) {
+    public int updateCategory(int id, String name, byte[] img, String model) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(KEY_CATEGORY_NAME, name);
@@ -112,18 +112,20 @@ public class DBHelp extends SQLiteOpenHelper {
         return db.update(TABLE_CATEGORY, values, KEY_CATEGORY_ID + "=?", new String[]{String.valueOf(id)});
     }
 
-    // Delete Category
     public void deleteCategory(int id) {
         SQLiteDatabase db = this.getWritableDatabase();
         db.delete(TABLE_CATEGORY, KEY_CATEGORY_ID + "=?", new String[]{String.valueOf(id)});
         db.close();
     }
 
+    // =============================
     // CAR CRUD OPERATIONS
+    // =============================
 
-    // Insert Car
     public long addCar(String name, String model, String year, String generation, String engineType,
-                       String horsepower, String transmission, String color, int categoryID, double rating) {
+                       String horsepower, String transmission, String color, byte[] img,
+                       int categoryID, double rating) {
+
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(KEY_CAR_NAME, name);
@@ -134,28 +136,29 @@ public class DBHelp extends SQLiteOpenHelper {
         values.put(KEY_HORSEPOWER, horsepower);
         values.put(KEY_TRANSMISSION, transmission);
         values.put(KEY_COLOR, color);
+        values.put(KEY_IMG, img);
         values.put(KEY_CATEGORY_REF_ID, categoryID);
         values.put(KEY_RATING, rating);
+
         long id = db.insert(TABLE_CAR, null, values);
         db.close();
         return id;
     }
 
-    // Get All Cars
     public Cursor getAllCars() {
         SQLiteDatabase db = this.getReadableDatabase();
         return db.rawQuery("SELECT * FROM " + TABLE_CAR, null);
     }
 
-    // Get Cars by Category
     public Cursor getCarsByCategory(int categoryID) {
         SQLiteDatabase db = this.getReadableDatabase();
         return db.rawQuery("SELECT * FROM " + TABLE_CAR + " WHERE " + KEY_CATEGORY_REF_ID + " = ?", new String[]{String.valueOf(categoryID)});
     }
 
-    // Update Car
     public int updateCar(int id, String name, String model, String year, String generation, String engineType,
-                         String horsepower, String transmission, String color, int categoryID, double rating) {
+                         String horsepower, String transmission, String color, byte[] img,
+                         int categoryID, double rating) {
+
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(KEY_CAR_NAME, name);
@@ -166,12 +169,13 @@ public class DBHelp extends SQLiteOpenHelper {
         values.put(KEY_HORSEPOWER, horsepower);
         values.put(KEY_TRANSMISSION, transmission);
         values.put(KEY_COLOR, color);
+        values.put(KEY_IMG, img);
         values.put(KEY_CATEGORY_REF_ID, categoryID);
         values.put(KEY_RATING, rating);
+
         return db.update(TABLE_CAR, values, KEY_CAR_ID + "=?", new String[]{String.valueOf(id)});
     }
 
-    // Delete Car
     public void deleteCar(int id) {
         SQLiteDatabase db = this.getWritableDatabase();
         db.delete(TABLE_CAR, KEY_CAR_ID + "=?", new String[]{String.valueOf(id)});
