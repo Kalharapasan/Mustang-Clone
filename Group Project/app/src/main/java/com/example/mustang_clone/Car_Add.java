@@ -50,24 +50,21 @@ public class Car_Add extends AppCompatActivity {
         backButton = findViewById(R.id.backButtonID);
 
         dbHelp = new DBHelp(this);
-
         categoryID = getIntent().getIntExtra("CATEGORY_ID", -1);
 
+        // --- Image picker
         imagePickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         Uri imageUri = result.getData().getData();
-                        try {
+                        if (imageUri != null) {
                             savedImagePath = copyImageToAppStorage(imageUri);
                             if (savedImagePath != null) {
-                                Toast.makeText(this, "Image copied to app storage", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(this, "Image selected", Toast.LENGTH_SHORT).show();
                             } else {
                                 Toast.makeText(this, "Failed to copy image", Toast.LENGTH_SHORT).show();
                             }
-                        } catch (Exception e) {
-                            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                            e.printStackTrace();
                         }
                     }
                 }
@@ -109,6 +106,7 @@ public class Car_Add extends AppCompatActivity {
                 return;
             }
 
+            // ✅ Add car using IMAGE PATH (not BLOB)
             long id = dbHelp.addCar(name, model, year, generation, engineType,
                     horsepower, transmission, color, savedImagePath, categoryID, rating);
 
@@ -129,7 +127,7 @@ public class Car_Add extends AppCompatActivity {
             if (inputStream == null) return null;
 
             File directory = new File(getFilesDir(), "car_images");
-            if (!directory.exists()) directory.mkdirs();
+            if (!directory.exists() && !directory.mkdirs()) return null;
 
             String fileName = "car_" + System.currentTimeMillis() + ".jpg";
             File file = new File(directory, fileName);
@@ -138,7 +136,6 @@ public class Car_Add extends AppCompatActivity {
                 byte[] buffer = new byte[4096];
                 int bytesRead;
                 while ((bytesRead = inputStream.read(buffer)) != -1) {
-                    // ✅ Corrected line
                     outputStream.write(buffer, 0, bytesRead);
                 }
             }

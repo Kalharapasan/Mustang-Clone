@@ -10,7 +10,7 @@ public class Car {
     private String horsepower;
     private String transmission;
     private String color;
-    private String carImg; // Base64 encoded image
+    private String carImg; // path to image file
     private int categoryID;
     private double rating;
 
@@ -31,99 +31,40 @@ public class Car {
         this.rating = rating;
     }
 
-    public int getCarID() {
-        return carID;
-    }
+    // Getters and setters
+    public int getCarID() { return carID; }
+    public void setCarID(int carID) { this.carID = carID; }
 
-    public void setCarID(int carID) {
-        this.carID = carID;
-    }
+    public String getCarName() { return carName; }
+    public void setCarName(String carName) { this.carName = carName; }
 
-    public String getCarName() {
-        return carName;
-    }
+    public String getCarModel() { return carModel; }
+    public void setCarModel(String carModel) { this.carModel = carModel; }
 
-    public void setCarName(String carName) {
-        this.carName = carName;
-    }
+    public String getYear() { return year; }
+    public void setYear(String year) { this.year = year; }
 
-    public String getCarModel() {
-        return carModel;
-    }
+    public String getGeneration() { return generation; }
+    public void setGeneration(String generation) { this.generation = generation; }
 
-    public void setCarModel(String carModel) {
-        this.carModel = carModel;
-    }
+    public String getEngineType() { return engineType; }
+    public void setEngineType(String engineType) { this.engineType = engineType; }
 
-    public String getYear() {
-        return year;
-    }
+    public String getHorsepower() { return horsepower; }
+    public void setHorsepower(String horsepower) { this.horsepower = horsepower; }
 
-    public void setYear(String year) {
-        this.year = year;
-    }
+    public String getTransmission() { return transmission; }
+    public void setTransmission(String transmission) { this.transmission = transmission; }
 
-    public String getGeneration() {
-        return generation;
-    }
+    public String getColor() { return color; }
+    public void setColor(String color) { this.color = color; }
 
-    public void setGeneration(String generation) {
-        this.generation = generation;
-    }
+    public String getCarImg() { return carImg; }
+    public void setCarImg(String carImg) { this.carImg = carImg; }
 
-    public String getEngineType() {
-        return engineType;
-    }
+    public int getCategoryID() { return categoryID; }
+    public void setCategoryID(int categoryID) { this.categoryID = categoryID; }
 
-    public void setEngineType(String engineType) {
-        this.engineType = engineType;
-    }
-
-    public String getHorsepower() {
-        return horsepower;
-    }
-
-    public void setHorsepower(String horsepower) {
-        this.horsepower = horsepower;
-    }
-
-    public String getTransmission() {
-        return transmission;
-    }
-
-    public void setTransmission(String transmission) {
-        this.transmission = transmission;
-    }
-
-    public String getColor() {
-        return color;
-    }
-
-    public void setColor(String color) {
-        this.color = color;
-    }
-
-    public String getCarImg() {
-        return carImg;
-    }
-
-    public void setCarImg(String carImg) {
-        this.carImg = carImg;
-    }
-
-    public int getCategoryID() {
-        return categoryID;
-    }
-
-    public void setCategoryID(int categoryID) {
-        this.categoryID = categoryID;
-    }
-
-    public double getRating() {
-        return rating;
-    }
-
-    public void setRating(double rating) {
-        this.rating = rating;
-    }
+    public double getRating() { return rating; }
+    public void setRating(double rating) { this.rating = rating; }
 }

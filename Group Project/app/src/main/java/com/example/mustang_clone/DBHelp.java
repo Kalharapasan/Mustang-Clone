@@ -10,11 +10,12 @@ import androidx.annotation.Nullable;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 
 public class DBHelp extends SQLiteOpenHelper {
 
-    private static final int DATABASE_VERSION = 1; // Incremented because schema changed
+    private static final int DATABASE_VERSION = 2; // Incremented due to schema change
     private static final String DATABASE_NAME = "mustangDB.db";
 
     private static final String TABLE_CATEGORY = "Category";
@@ -22,7 +23,7 @@ public class DBHelp extends SQLiteOpenHelper {
 
     private static final String KEY_CATEGORY_ID = "categoryID";
     private static final String KEY_CATEGORY_NAME = "categoryName";
-    private static final String KEY_CATEGORY_IMG = "categoryImg"; // Still BLOB
+    private static final String KEY_CATEGORY_IMG = "categoryImg"; // still BLOB if you want
     private static final String KEY_CATEGORY_MODEL = "categoryModel";
 
     private static final String KEY_CAR_ID = "carID";
@@ -34,7 +35,7 @@ public class DBHelp extends SQLiteOpenHelper {
     private static final String KEY_HORSEPOWER = "horsepower";
     private static final String KEY_TRANSMISSION = "transmission";
     private static final String KEY_COLOR = "color";
-    private static final String KEY_IMG_PATH = "imgPath"; // TEXT path to image file
+    private static final String KEY_CAR_IMG_PATH = "carImgPath"; // store path now
     private static final String KEY_CATEGORY_REF_ID = "categoryID";
     private static final String KEY_RATING = "rating";
 
@@ -44,29 +45,29 @@ public class DBHelp extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        String CREATE_CATEGORY_TABLE = "CREATE TABLE " + TABLE_CATEGORY + " ("
-                + KEY_CATEGORY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-                + KEY_CATEGORY_NAME + " TEXT, "
-                + KEY_CATEGORY_IMG + " BLOB, "
-                + KEY_CATEGORY_MODEL + " TEXT"
-                + ")";
+        String CREATE_CATEGORY_TABLE = "CREATE TABLE " + TABLE_CATEGORY + " (" +
+                KEY_CATEGORY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                KEY_CATEGORY_NAME + " TEXT, " +
+                KEY_CATEGORY_IMG + " BLOB, " +
+                KEY_CATEGORY_MODEL + " TEXT" +
+                ")";
 
-        String CREATE_CAR_TABLE = "CREATE TABLE " + TABLE_CAR + " ("
-                + KEY_CAR_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-                + KEY_CAR_NAME + " TEXT, "
-                + KEY_CAR_MODEL + " TEXT, "
-                + KEY_YEAR + " TEXT, "
-                + KEY_GENERATION + " TEXT, "
-                + KEY_ENGINE_TYPE + " TEXT, "
-                + KEY_HORSEPOWER + " TEXT, "
-                + KEY_TRANSMISSION + " TEXT, "
-                + KEY_COLOR + " TEXT, "
-                + KEY_IMG_PATH + " TEXT, " // store path
-                + KEY_CATEGORY_REF_ID + " INTEGER, "
-                + KEY_RATING + " REAL, "
-                + "FOREIGN KEY(" + KEY_CATEGORY_REF_ID + ") REFERENCES "
-                + TABLE_CATEGORY + "(" + KEY_CATEGORY_ID + ")"
-                + ")";
+        String CREATE_CAR_TABLE = "CREATE TABLE " + TABLE_CAR + " (" +
+                KEY_CAR_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                KEY_CAR_NAME + " TEXT, " +
+                KEY_CAR_MODEL + " TEXT, " +
+                KEY_YEAR + " TEXT, " +
+                KEY_GENERATION + " TEXT, " +
+                KEY_ENGINE_TYPE + " TEXT, " +
+                KEY_HORSEPOWER + " TEXT, " +
+                KEY_TRANSMISSION + " TEXT, " +
+                KEY_COLOR + " TEXT, " +
+                KEY_CAR_IMG_PATH + " TEXT, " +  // changed to TEXT for file path
+                KEY_CATEGORY_REF_ID + " INTEGER, " +
+                KEY_RATING + " REAL, " +
+                "FOREIGN KEY(" + KEY_CATEGORY_REF_ID + ") REFERENCES " +
+                TABLE_CATEGORY + "(" + KEY_CATEGORY_ID + ")" +
+                ")";
 
         db.execSQL(CREATE_CATEGORY_TABLE);
         db.execSQL(CREATE_CAR_TABLE);
@@ -102,16 +103,14 @@ public class DBHelp extends SQLiteOpenHelper {
         values.put(KEY_CATEGORY_NAME, name);
         values.put(KEY_CATEGORY_IMG, img);
         values.put(KEY_CATEGORY_MODEL, model);
-        int rows = db.update(TABLE_CATEGORY, values, KEY_CATEGORY_ID + "=?",
-                new String[]{String.valueOf(id)});
+        int rows = db.update(TABLE_CATEGORY, values, KEY_CATEGORY_ID + "=?", new String[]{String.valueOf(id)});
         db.close();
         return rows;
     }
 
     public void deleteCategory(int id) {
         SQLiteDatabase db = this.getWritableDatabase();
-        db.delete(TABLE_CATEGORY, KEY_CATEGORY_ID + "=?",
-                new String[]{String.valueOf(id)});
+        db.delete(TABLE_CATEGORY, KEY_CATEGORY_ID + "=?", new String[]{String.valueOf(id)});
         db.close();
     }
 
@@ -130,7 +129,7 @@ public class DBHelp extends SQLiteOpenHelper {
         values.put(KEY_HORSEPOWER, horsepower);
         values.put(KEY_TRANSMISSION, transmission);
         values.put(KEY_COLOR, color);
-        values.put(KEY_IMG_PATH, imgPath);
+        values.put(KEY_CAR_IMG_PATH, imgPath);  // store path
         values.put(KEY_CATEGORY_REF_ID, categoryID);
         values.put(KEY_RATING, rating);
 
@@ -165,12 +164,11 @@ public class DBHelp extends SQLiteOpenHelper {
         values.put(KEY_HORSEPOWER, horsepower);
         values.put(KEY_TRANSMISSION, transmission);
         values.put(KEY_COLOR, color);
-        values.put(KEY_IMG_PATH, imgPath);
+        values.put(KEY_CAR_IMG_PATH, imgPath); // updated
         values.put(KEY_CATEGORY_REF_ID, categoryID);
         values.put(KEY_RATING, rating);
 
-        int rows = db.update(TABLE_CAR, values, KEY_CAR_ID + "=?",
-                new String[]{String.valueOf(id)});
+        int rows = db.update(TABLE_CAR, values, KEY_CAR_ID + "=?", new String[]{String.valueOf(id)});
         db.close();
         return rows;
     }
@@ -181,8 +179,7 @@ public class DBHelp extends SQLiteOpenHelper {
         db.close();
     }
 
-    // ✅ Added: helper method to read an image file into a byte array
-    // Used by Category_Update.java when updating category images
+    // ✅ Helper: read an image file into byte array
     public byte[] readImageFile(String filePath) {
         try {
             File file = new File(filePath);
@@ -194,6 +191,26 @@ public class DBHelp extends SQLiteOpenHelper {
             fis.close();
             return (bytesRead > 0) ? data : null;
         } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    // ✅ Helper: save BLOB to file (for migrating old BLOB images)
+    public String saveBlobToFile(byte[] blob, Context context, String fileName) {
+        try {
+            if (blob == null || blob.length == 0) return null;
+
+            File dir = new File(context.getFilesDir(), "car_images");
+            if (!dir.exists()) dir.mkdirs();
+
+            File file = new File(dir, fileName);
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                fos.write(blob);
+            }
+
+            return file.getAbsolutePath();
+        } catch (Exception e) {
             e.printStackTrace();
             return null;
         }

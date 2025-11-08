@@ -22,9 +22,9 @@ import java.util.List;
 
 public class CarAdapter extends RecyclerView.Adapter<CarAdapter.CarViewHolder> {
 
-    List<Car> carItems;
-    Context context;
-    DBHelp dbHelp;
+    private final List<Car> carItems;
+    private final Context context;
+    private final DBHelp dbHelp;
 
     public CarAdapter(List<Car> carItems, Context context) {
         this.carItems = carItems;
@@ -46,38 +46,46 @@ public class CarAdapter extends RecyclerView.Adapter<CarAdapter.CarViewHolder> {
         holder.model.setText(item.getCarModel());
         holder.carName.setText(item.getCarName());
 
-        // ✅ Load image (from Base64 or file)
-        if (item.getCarImg() != null && !item.getCarImg().isEmpty()) {
-            try {
-                // First try decoding as file path
+        // Load image safely
+        Bitmap bitmap = null;
+        try {
+            if (item.getCarImg() != null && !item.getCarImg().isEmpty()) {
                 File file = new File(item.getCarImg());
                 if (file.exists()) {
-                    Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
-                    holder.image.setImageBitmap(bitmap);
+                    bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
                 } else {
-                    // fallback: decode Base64 (old data)
-                    byte[] imgBytes = Base64.decode(item.getCarImg(), Base64.DEFAULT);
-                    Bitmap bitmap = BitmapFactory.decodeByteArray(imgBytes, 0, imgBytes.length);
-                    holder.image.setImageBitmap(bitmap);
+                    // fallback Base64 decode (if old BLOB data is still stored)
+                    byte[] bytes = Base64.decode(item.getCarImg(), Base64.DEFAULT);
+                    bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (bitmap != null) {
+            holder.image.setImageBitmap(bitmap);
+        } else {
+            // optional placeholder drawable
+            holder.image.setImageResource(R.drawable.cobramustanf3d); // make sure this drawable exists
         }
 
         // Delete button
         holder.deleteBtn.setOnClickListener(v -> {
             dbHelp.deleteCar(item.getCarID());
-            carItems.remove(position);
-            notifyItemRemoved(position);
-            notifyItemRangeChanged(position, carItems.size());
+            int pos = holder.getAdapterPosition();
+            carItems.remove(pos);
+            notifyItemRemoved(pos);
+            notifyItemRangeChanged(pos, carItems.size());
             Toast.makeText(context, "Car deleted", Toast.LENGTH_SHORT).show();
         });
 
-        // ✅ Edit button — fixed: send safe image path instead of Base64
+        // Edit button
         holder.editBtn.setOnClickListener(v -> {
             Intent intent = new Intent(context, Car_Update.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+            // Pass all current values
             intent.putExtra("CAR_ID", item.getCarID());
             intent.putExtra("CAR_NAME", item.getCarName());
             intent.putExtra("CAR_MODEL", item.getCarModel());
@@ -90,23 +98,22 @@ public class CarAdapter extends RecyclerView.Adapter<CarAdapter.CarViewHolder> {
             intent.putExtra("CATEGORY_ID", item.getCategoryID());
             intent.putExtra("RATING", item.getRating());
 
-            // ✅ Fixed part
+            // Ensure valid image path is passed
             String imagePath = item.getCarImg();
-            if (imagePath != null && new File(imagePath).exists()) {
-                // It's a file path
+            if (imagePath != null && !imagePath.isEmpty() && new File(imagePath).exists()) {
                 intent.putExtra("CAR_IMAGE", imagePath);
             } else {
-                // Avoid sending huge Base64 strings (causes crash)
-                intent.putExtra("CAR_IMAGE", "");
+                intent.putExtra("CAR_IMAGE", ""); // fallback empty
             }
 
             context.startActivity(intent);
         });
 
-        // View details
+        // View car details
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(context, CarView.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
             intent.putExtra("CAR_ID", item.getCarID());
             intent.putExtra("CAR_NAME", item.getCarName());
             intent.putExtra("CAR_MODEL", item.getCarModel());
@@ -118,6 +125,7 @@ public class CarAdapter extends RecyclerView.Adapter<CarAdapter.CarViewHolder> {
             intent.putExtra("COLOR", item.getColor());
             intent.putExtra("CAR_IMAGE", item.getCarImg());
             intent.putExtra("RATING", item.getRating());
+
             context.startActivity(intent);
         });
     }

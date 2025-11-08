@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Base64;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -56,11 +57,17 @@ public class Car_Update extends AppCompatActivity {
 
         dbHelp = new DBHelp(this);
 
-        // Get intent data
         Intent intent = getIntent();
+        if (intent == null) {
+            Toast.makeText(this, "No data provided", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
         carId = intent.getIntExtra("CAR_ID", -1);
         categoryID = intent.getIntExtra("CATEGORY_ID", -1);
 
+        // Set existing data
         carNameUpdate.setText(intent.getStringExtra("CAR_NAME"));
         carModelUpdate.setText(intent.getStringExtra("CAR_MODEL"));
         yearUpdate.setText(intent.getStringExtra("YEAR"));
@@ -69,50 +76,51 @@ public class Car_Update extends AppCompatActivity {
         horsepowerUpdate.setText(intent.getStringExtra("HORSEPOWER"));
         transmissionUpdate.setText(intent.getStringExtra("TRANSMISSION"));
         colorUpdate.setText(intent.getStringExtra("COLOR"));
-        ratingUpdate.setText(String.valueOf(intent.getDoubleExtra("RATING", 0.0)));
+        double ratingExtra = intent.getDoubleExtra("RATING", Double.NaN);
+        if (!Double.isNaN(ratingExtra)) ratingUpdate.setText(String.valueOf(ratingExtra));
 
-        // ✅ Get image safely
-        String carImagePath = intent.getStringExtra("CAR_IMAGE");
-        if (carImagePath != null && !carImagePath.isEmpty()) {
-            File file = new File(carImagePath);
+        String carImageExtra = intent.getStringExtra("CAR_IMAGE");
+        if (carImageExtra != null && !carImageExtra.isEmpty()) {
+            File file = new File(carImageExtra);
             if (file.exists()) {
                 Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
-                updateCarImageBtn.setImageBitmap(bitmap);
-                savedImagePath = carImagePath;
+                if (bitmap != null) updateCarImageBtn.setImageBitmap(bitmap);
+                savedImagePath = file.getAbsolutePath();
             }
         }
 
-        // ✅ Image picker setup
+        // --- Image picker
         imagePickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
-                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                        Uri imageUri = result.getData().getData();
-                        try {
-                            savedImagePath = copyImageToAppStorage(imageUri);
-                            if (savedImagePath != null) {
-                                InputStream inputStream = getContentResolver().openInputStream(imageUri);
-                                Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-                                updateCarImageBtn.setImageBitmap(bitmap);
-                                Toast.makeText(this, "Image copied to app storage", Toast.LENGTH_SHORT).show();
-                            } else {
-                                Toast.makeText(this, "Failed to copy image", Toast.LENGTH_SHORT).show();
+                    try {
+                        if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                            Uri imageUri = result.getData().getData();
+                            if (imageUri != null) {
+                                String newPath = copyImageToAppStorage(imageUri);
+                                if (newPath != null) {
+                                    savedImagePath = newPath;
+                                    InputStream inputStream = getContentResolver().openInputStream(imageUri);
+                                    Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+                                    if (bitmap != null) updateCarImageBtn.setImageBitmap(bitmap);
+                                    Toast.makeText(this, "Image selected", Toast.LENGTH_SHORT).show();
+                                } else {
+                                    Toast.makeText(this, "Failed to copy image", Toast.LENGTH_SHORT).show();
+                                }
                             }
-                        } catch (Exception e) {
-                            Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
-                            e.printStackTrace();
                         }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
                     }
                 }
         );
 
-        // Open gallery
         updateCarImageBtn.setOnClickListener(v -> {
             Intent pickIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
             imagePickerLauncher.launch(pickIntent);
         });
 
-        // ✅ Update button
         updateCarBtn.setOnClickListener(v -> {
             String name = carNameUpdate.getText().toString().trim();
             String model = carModelUpdate.getText().toString().trim();
@@ -144,6 +152,7 @@ public class Car_Update extends AppCompatActivity {
                 return;
             }
 
+            // ✅ Update car using IMAGE PATH (not BLOB)
             int rowsAffected = dbHelp.updateCar(
                     carId, name, model, year, generation,
                     engineType, horsepower, transmission, color,
@@ -161,14 +170,13 @@ public class Car_Update extends AppCompatActivity {
         backButton.setOnClickListener(v -> finish());
     }
 
-    // ✅ Copy selected image into app's private folder
     private String copyImageToAppStorage(Uri uri) {
         try {
             InputStream inputStream = getContentResolver().openInputStream(uri);
             if (inputStream == null) return null;
 
             File directory = new File(getFilesDir(), "car_images");
-            if (!directory.exists()) directory.mkdirs();
+            if (!directory.exists() && !directory.mkdirs()) return null;
 
             String fileName = "car_" + System.currentTimeMillis() + ".jpg";
             File file = new File(directory, fileName);
