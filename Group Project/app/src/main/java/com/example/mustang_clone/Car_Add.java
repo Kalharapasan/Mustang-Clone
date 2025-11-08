@@ -1,8 +1,6 @@
 package com.example.mustang_clone;
 
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -16,8 +14,10 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.imageview.ShapeableImageView;
 
-import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 public class Car_Add extends AppCompatActivity {
 
@@ -26,7 +26,7 @@ public class Car_Add extends AppCompatActivity {
     private EditText engineTypeInput, horsepowerInput, transmissionInput, colorInput, ratingInput;
     private ShapeableImageView backButton;
     private DBHelp dbHelp;
-    private byte[] selectedImageBytes = null;
+    private String savedImagePath = null;
     private int categoryID;
 
     private ActivityResultLauncher<Intent> imagePickerLauncher;
@@ -36,7 +36,6 @@ public class Car_Add extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_car_add);
 
-        // Initialize views
         inputCarImageBtn = findViewById(R.id.inputCarImageID);
         addCarBtn = findViewById(R.id.addCategoryButtonID);
         carModelInput = findViewById(R.id.carModelInputID);
@@ -52,40 +51,33 @@ public class Car_Add extends AppCompatActivity {
 
         dbHelp = new DBHelp(this);
 
-        // Get category ID from intent
         categoryID = getIntent().getIntExtra("CATEGORY_ID", -1);
 
-        // Initialize image picker launcher
         imagePickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         Uri imageUri = result.getData().getData();
                         try {
-                            InputStream inputStream = getContentResolver().openInputStream(imageUri);
-                            Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-
-                            // Convert to byte array
-                            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
-                            selectedImageBytes = stream.toByteArray();
-
-                            Toast.makeText(this, "Image selected successfully", Toast.LENGTH_SHORT).show();
+                            savedImagePath = copyImageToAppStorage(imageUri);
+                            if (savedImagePath != null) {
+                                Toast.makeText(this, "Image copied to app storage", Toast.LENGTH_SHORT).show();
+                            } else {
+                                Toast.makeText(this, "Failed to copy image", Toast.LENGTH_SHORT).show();
+                            }
                         } catch (Exception e) {
-                            Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                             e.printStackTrace();
                         }
                     }
                 }
         );
 
-        // Image selection button
         inputCarImageBtn.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
             imagePickerLauncher.launch(intent);
         });
 
-        // Add car button
         addCarBtn.setOnClickListener(v -> {
             String name = carNameInput.getText().toString().trim();
             String model = carModelInput.getText().toString().trim();
@@ -97,7 +89,6 @@ public class Car_Add extends AppCompatActivity {
             String color = colorInput.getText().toString().trim();
             String ratingStr = ratingInput.getText().toString().trim();
 
-            // Validation
             if (name.isEmpty() || model.isEmpty() || year.isEmpty() || generation.isEmpty() ||
                     engineType.isEmpty() || horsepower.isEmpty() || transmission.isEmpty() ||
                     color.isEmpty() || ratingStr.isEmpty()) {
@@ -105,7 +96,7 @@ public class Car_Add extends AppCompatActivity {
                 return;
             }
 
-            if (selectedImageBytes == null) {
+            if (savedImagePath == null) {
                 Toast.makeText(this, "Please select an image", Toast.LENGTH_SHORT).show();
                 return;
             }
@@ -119,7 +110,7 @@ public class Car_Add extends AppCompatActivity {
             }
 
             long id = dbHelp.addCar(name, model, year, generation, engineType,
-                    horsepower, transmission, color, selectedImageBytes, categoryID, rating);
+                    horsepower, transmission, color, savedImagePath, categoryID, rating);
 
             if (id > 0) {
                 Toast.makeText(this, "Car added successfully", Toast.LENGTH_SHORT).show();
@@ -129,7 +120,34 @@ public class Car_Add extends AppCompatActivity {
             }
         });
 
-        // Back button
         backButton.setOnClickListener(v -> finish());
+    }
+
+    private String copyImageToAppStorage(Uri uri) {
+        try {
+            InputStream inputStream = getContentResolver().openInputStream(uri);
+            if (inputStream == null) return null;
+
+            File directory = new File(getFilesDir(), "car_images");
+            if (!directory.exists()) directory.mkdirs();
+
+            String fileName = "car_" + System.currentTimeMillis() + ".jpg";
+            File file = new File(directory, fileName);
+
+            try (OutputStream outputStream = new FileOutputStream(file)) {
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    // ✅ Corrected line
+                    outputStream.write(buffer, 0, bytesRead);
+                }
+            }
+
+            inputStream.close();
+            return file.getAbsolutePath();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }

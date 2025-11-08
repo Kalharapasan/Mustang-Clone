@@ -8,9 +8,13 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 import androidx.annotation.Nullable;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+
 public class DBHelp extends SQLiteOpenHelper {
 
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 1; // Incremented because schema changed
     private static final String DATABASE_NAME = "mustangDB.db";
 
     private static final String TABLE_CATEGORY = "Category";
@@ -18,7 +22,7 @@ public class DBHelp extends SQLiteOpenHelper {
 
     private static final String KEY_CATEGORY_ID = "categoryID";
     private static final String KEY_CATEGORY_NAME = "categoryName";
-    private static final String KEY_CATEGORY_IMG = "categoryImg";
+    private static final String KEY_CATEGORY_IMG = "categoryImg"; // Still BLOB
     private static final String KEY_CATEGORY_MODEL = "categoryModel";
 
     private static final String KEY_CAR_ID = "carID";
@@ -30,7 +34,7 @@ public class DBHelp extends SQLiteOpenHelper {
     private static final String KEY_HORSEPOWER = "horsepower";
     private static final String KEY_TRANSMISSION = "transmission";
     private static final String KEY_COLOR = "color";
-    private static final String KEY_IMG = "img";
+    private static final String KEY_IMG_PATH = "imgPath"; // TEXT path to image file
     private static final String KEY_CATEGORY_REF_ID = "categoryID";
     private static final String KEY_RATING = "rating";
 
@@ -57,7 +61,7 @@ public class DBHelp extends SQLiteOpenHelper {
                 + KEY_HORSEPOWER + " TEXT, "
                 + KEY_TRANSMISSION + " TEXT, "
                 + KEY_COLOR + " TEXT, "
-                + KEY_IMG + " BLOB, "
+                + KEY_IMG_PATH + " TEXT, " // store path
                 + KEY_CATEGORY_REF_ID + " INTEGER, "
                 + KEY_RATING + " REAL, "
                 + "FOREIGN KEY(" + KEY_CATEGORY_REF_ID + ") REFERENCES "
@@ -75,7 +79,7 @@ public class DBHelp extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    // CATEGORY CRUD
+    // ===================== CATEGORY CRUD =====================
     public long addCategory(String name, byte[] img, String model) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
@@ -111,10 +115,11 @@ public class DBHelp extends SQLiteOpenHelper {
         db.close();
     }
 
-    // CAR CRUD
+    // ===================== CAR CRUD =====================
     public long addCar(String name, String model, String year, String generation,
                        String engineType, String horsepower, String transmission,
-                       String color, byte[] img, int categoryID, double rating) {
+                       String color, String imgPath, int categoryID, double rating) {
+
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(KEY_CAR_NAME, name);
@@ -125,9 +130,10 @@ public class DBHelp extends SQLiteOpenHelper {
         values.put(KEY_HORSEPOWER, horsepower);
         values.put(KEY_TRANSMISSION, transmission);
         values.put(KEY_COLOR, color);
-        values.put(KEY_IMG, img);
+        values.put(KEY_IMG_PATH, imgPath);
         values.put(KEY_CATEGORY_REF_ID, categoryID);
         values.put(KEY_RATING, rating);
+
         long id = db.insert(TABLE_CAR, null, values);
         db.close();
         return id;
@@ -139,7 +145,6 @@ public class DBHelp extends SQLiteOpenHelper {
                 + KEY_CATEGORY_REF_ID + "=?", new String[]{String.valueOf(categoryID)});
     }
 
-
     public Cursor getAllCars() {
         SQLiteDatabase db = this.getReadableDatabase();
         return db.rawQuery("SELECT * FROM " + TABLE_CAR, null);
@@ -147,8 +152,9 @@ public class DBHelp extends SQLiteOpenHelper {
 
     public int updateCar(int id, String name, String model, String year,
                          String generation, String engineType, String horsepower,
-                         String transmission, String color, byte[] img,
+                         String transmission, String color, String imgPath,
                          int categoryID, double rating) {
+
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(KEY_CAR_NAME, name);
@@ -159,9 +165,10 @@ public class DBHelp extends SQLiteOpenHelper {
         values.put(KEY_HORSEPOWER, horsepower);
         values.put(KEY_TRANSMISSION, transmission);
         values.put(KEY_COLOR, color);
-        values.put(KEY_IMG, img);
+        values.put(KEY_IMG_PATH, imgPath);
         values.put(KEY_CATEGORY_REF_ID, categoryID);
         values.put(KEY_RATING, rating);
+
         int rows = db.update(TABLE_CAR, values, KEY_CAR_ID + "=?",
                 new String[]{String.valueOf(id)});
         db.close();
@@ -172,5 +179,23 @@ public class DBHelp extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
         db.delete(TABLE_CAR, KEY_CAR_ID + "=?", new String[]{String.valueOf(id)});
         db.close();
+    }
+
+    // ✅ Added: helper method to read an image file into a byte array
+    // Used by Category_Update.java when updating category images
+    public byte[] readImageFile(String filePath) {
+        try {
+            File file = new File(filePath);
+            if (!file.exists()) return null;
+
+            FileInputStream fis = new FileInputStream(file);
+            byte[] data = new byte[(int) file.length()];
+            int bytesRead = fis.read(data);
+            fis.close();
+            return (bytesRead > 0) ? data : null;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }

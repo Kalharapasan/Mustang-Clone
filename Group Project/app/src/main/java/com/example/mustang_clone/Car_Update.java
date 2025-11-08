@@ -6,7 +6,6 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.util.Base64;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -18,18 +17,21 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.imageview.ShapeableImageView;
 
-import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 public class Car_Update extends AppCompatActivity {
 
-    private ImageView updateCarImageBtn; // ✅ FIXED type (was Button)
+    private ImageView updateCarImageBtn;
     private Button updateCarBtn;
     private EditText carModelUpdate, carNameUpdate, yearUpdate, generationUpdate;
     private EditText engineTypeUpdate, horsepowerUpdate, transmissionUpdate, colorUpdate, ratingUpdate;
     private ShapeableImageView backButton;
+
     private DBHelp dbHelp;
-    private byte[] selectedImageBytes = null;
+    private String savedImagePath = null;
     private int carId, categoryID;
 
     private ActivityResultLauncher<Intent> imagePickerLauncher;
@@ -54,6 +56,7 @@ public class Car_Update extends AppCompatActivity {
 
         dbHelp = new DBHelp(this);
 
+        // Get intent data
         Intent intent = getIntent();
         carId = intent.getIntExtra("CAR_ID", -1);
         categoryID = intent.getIntExtra("CATEGORY_ID", -1);
@@ -68,38 +71,48 @@ public class Car_Update extends AppCompatActivity {
         colorUpdate.setText(intent.getStringExtra("COLOR"));
         ratingUpdate.setText(String.valueOf(intent.getDoubleExtra("RATING", 0.0)));
 
-        String carImage = intent.getStringExtra("CAR_IMAGE");
-        if (carImage != null && !carImage.isEmpty()) {
-            selectedImageBytes = Base64.decode(carImage, Base64.DEFAULT);
-            Bitmap bitmap = BitmapFactory.decodeByteArray(selectedImageBytes, 0, selectedImageBytes.length);
-            updateCarImageBtn.setImageBitmap(bitmap);
+        // ✅ Get image safely
+        String carImagePath = intent.getStringExtra("CAR_IMAGE");
+        if (carImagePath != null && !carImagePath.isEmpty()) {
+            File file = new File(carImagePath);
+            if (file.exists()) {
+                Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+                updateCarImageBtn.setImageBitmap(bitmap);
+                savedImagePath = carImagePath;
+            }
         }
 
+        // ✅ Image picker setup
         imagePickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         Uri imageUri = result.getData().getData();
                         try {
-                            InputStream inputStream = getContentResolver().openInputStream(imageUri);
-                            Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-                            updateCarImageBtn.setImageBitmap(bitmap);
-
-                            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
-                            selectedImageBytes = stream.toByteArray();
+                            savedImagePath = copyImageToAppStorage(imageUri);
+                            if (savedImagePath != null) {
+                                InputStream inputStream = getContentResolver().openInputStream(imageUri);
+                                Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+                                updateCarImageBtn.setImageBitmap(bitmap);
+                                Toast.makeText(this, "Image copied to app storage", Toast.LENGTH_SHORT).show();
+                            } else {
+                                Toast.makeText(this, "Failed to copy image", Toast.LENGTH_SHORT).show();
+                            }
                         } catch (Exception e) {
                             Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
+                            e.printStackTrace();
                         }
                     }
                 }
         );
 
+        // Open gallery
         updateCarImageBtn.setOnClickListener(v -> {
             Intent pickIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
             imagePickerLauncher.launch(pickIntent);
         });
 
+        // ✅ Update button
         updateCarBtn.setOnClickListener(v -> {
             String name = carNameUpdate.getText().toString().trim();
             String model = carModelUpdate.getText().toString().trim();
@@ -118,6 +131,11 @@ public class Car_Update extends AppCompatActivity {
                 return;
             }
 
+            if (savedImagePath == null) {
+                Toast.makeText(this, "Please select an image", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
             double rating;
             try {
                 rating = Double.parseDouble(ratingStr);
@@ -126,8 +144,11 @@ public class Car_Update extends AppCompatActivity {
                 return;
             }
 
-            int rowsAffected = dbHelp.updateCar(carId, name, model, year, generation,
-                    engineType, horsepower, transmission, color, selectedImageBytes, categoryID, rating);
+            int rowsAffected = dbHelp.updateCar(
+                    carId, name, model, year, generation,
+                    engineType, horsepower, transmission, color,
+                    savedImagePath, categoryID, rating
+            );
 
             if (rowsAffected > 0) {
                 Toast.makeText(this, "Car updated successfully", Toast.LENGTH_SHORT).show();
@@ -138,5 +159,33 @@ public class Car_Update extends AppCompatActivity {
         });
 
         backButton.setOnClickListener(v -> finish());
+    }
+
+    // ✅ Copy selected image into app's private folder
+    private String copyImageToAppStorage(Uri uri) {
+        try {
+            InputStream inputStream = getContentResolver().openInputStream(uri);
+            if (inputStream == null) return null;
+
+            File directory = new File(getFilesDir(), "car_images");
+            if (!directory.exists()) directory.mkdirs();
+
+            String fileName = "car_" + System.currentTimeMillis() + ".jpg";
+            File file = new File(directory, fileName);
+
+            try (OutputStream outputStream = new FileOutputStream(file)) {
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, bytesRead);
+                }
+            }
+
+            inputStream.close();
+            return file.getAbsolutePath();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }

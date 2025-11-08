@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.imageview.ShapeableImageView;
 
+import java.io.File;
 import java.util.List;
 
 public class CarAdapter extends RecyclerView.Adapter<CarAdapter.CarViewHolder> {
@@ -45,11 +46,23 @@ public class CarAdapter extends RecyclerView.Adapter<CarAdapter.CarViewHolder> {
         holder.model.setText(item.getCarModel());
         holder.carName.setText(item.getCarName());
 
-        // Load image
+        // ✅ Load image (from Base64 or file)
         if (item.getCarImg() != null && !item.getCarImg().isEmpty()) {
-            byte[] imgBytes = Base64.decode(item.getCarImg(), Base64.DEFAULT);
-            Bitmap bitmap = BitmapFactory.decodeByteArray(imgBytes, 0, imgBytes.length);
-            holder.image.setImageBitmap(bitmap);
+            try {
+                // First try decoding as file path
+                File file = new File(item.getCarImg());
+                if (file.exists()) {
+                    Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+                    holder.image.setImageBitmap(bitmap);
+                } else {
+                    // fallback: decode Base64 (old data)
+                    byte[] imgBytes = Base64.decode(item.getCarImg(), Base64.DEFAULT);
+                    Bitmap bitmap = BitmapFactory.decodeByteArray(imgBytes, 0, imgBytes.length);
+                    holder.image.setImageBitmap(bitmap);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         // Delete button
@@ -61,7 +74,7 @@ public class CarAdapter extends RecyclerView.Adapter<CarAdapter.CarViewHolder> {
             Toast.makeText(context, "Car deleted", Toast.LENGTH_SHORT).show();
         });
 
-        // Edit button
+        // ✅ Edit button — fixed: send safe image path instead of Base64
         holder.editBtn.setOnClickListener(v -> {
             Intent intent = new Intent(context, Car_Update.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -74,13 +87,23 @@ public class CarAdapter extends RecyclerView.Adapter<CarAdapter.CarViewHolder> {
             intent.putExtra("HORSEPOWER", item.getHorsepower());
             intent.putExtra("TRANSMISSION", item.getTransmission());
             intent.putExtra("COLOR", item.getColor());
-            intent.putExtra("CAR_IMAGE", item.getCarImg());
             intent.putExtra("CATEGORY_ID", item.getCategoryID());
             intent.putExtra("RATING", item.getRating());
+
+            // ✅ Fixed part
+            String imagePath = item.getCarImg();
+            if (imagePath != null && new File(imagePath).exists()) {
+                // It's a file path
+                intent.putExtra("CAR_IMAGE", imagePath);
+            } else {
+                // Avoid sending huge Base64 strings (causes crash)
+                intent.putExtra("CAR_IMAGE", "");
+            }
+
             context.startActivity(intent);
         });
 
-        // View details - open CarView activity
+        // View details
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(context, CarView.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

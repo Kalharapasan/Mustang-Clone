@@ -66,25 +66,64 @@ public class CarItem extends AppCompatActivity {
             }
 
             if (cursor != null && cursor.moveToFirst()) {
+                // findColumnIndex safely once
+                int idCol = safeColumnIndex(cursor, "carID");
+                int nameCol = safeColumnIndex(cursor, "carName");
+                int modelCol = safeColumnIndex(cursor, "carModel");
+                int yearCol = safeColumnIndex(cursor, "year");
+                int genCol = safeColumnIndex(cursor, "generation");
+                int engineCol = safeColumnIndex(cursor, "engineType");
+                int hpCol = safeColumnIndex(cursor, "horsepower");
+                int transCol = safeColumnIndex(cursor, "transmission");
+                int colorCol = safeColumnIndex(cursor, "color");
+                int imgBlobCol = safeColumnIndex(cursor, "img"); // old BLOB column
+                int imgPathCol = safeColumnIndex(cursor, "imgPath"); // new TEXT column
+                int catCol = safeColumnIndex(cursor, "categoryID");
+                int ratingCol = safeColumnIndex(cursor, "rating");
+
                 do {
-                    int id = cursor.getInt(cursor.getColumnIndex("carID"));
-                    String name = cursor.getString(cursor.getColumnIndex("carName"));
-                    String model = cursor.getString(cursor.getColumnIndex("carModel"));
-                    String year = cursor.getString(cursor.getColumnIndex("year"));
-                    String generation = cursor.getString(cursor.getColumnIndex("generation"));
-                    String engineType = cursor.getString(cursor.getColumnIndex("engineType"));
-                    String horsepower = cursor.getString(cursor.getColumnIndex("horsepower"));
-                    String transmission = cursor.getString(cursor.getColumnIndex("transmission"));
-                    String color = cursor.getString(cursor.getColumnIndex("color"));
-                    byte[] imgBytes = cursor.getBlob(cursor.getColumnIndex("img"));
-                    int catID = cursor.getInt(cursor.getColumnIndex("categoryID"));
-                    double rating = cursor.getDouble(cursor.getColumnIndex("rating"));
+                    int id = idCol >= 0 ? cursor.getInt(idCol) : -1;
+                    String name = nameCol >= 0 ? cursor.getString(nameCol) : "";
+                    String model = modelCol >= 0 ? cursor.getString(modelCol) : "";
+                    String year = yearCol >= 0 ? cursor.getString(yearCol) : "";
+                    String generation = genCol >= 0 ? cursor.getString(genCol) : "";
+                    String engineType = engineCol >= 0 ? cursor.getString(engineCol) : "";
+                    String horsepower = hpCol >= 0 ? cursor.getString(hpCol) : "";
+                    String transmission = transCol >= 0 ? cursor.getString(transCol) : "";
+                    String color = colorCol >= 0 ? cursor.getString(colorCol) : "";
+                    int catID = catCol >= 0 ? cursor.getInt(catCol) : -1;
+                    double rating = ratingCol >= 0 ? cursor.getDouble(ratingCol) : 0.0;
 
                     String encodedImage = "";
-                    if (imgBytes != null && imgBytes.length > 0) {
-                        encodedImage = Base64.encodeToString(imgBytes, Base64.DEFAULT);
+
+                    // 1) Prefer new imgPath TEXT column (file path). If exists, read file bytes and encode to Base64.
+                    if (imgPathCol >= 0) {
+                        String imgPath = cursor.getString(imgPathCol);
+                        if (imgPath != null && !imgPath.isEmpty()) {
+                            try {
+                                byte[] fileBytes = dbHelp.readImageFile(imgPath);
+                                if (fileBytes != null && fileBytes.length > 0) {
+                                    encodedImage = Base64.encodeToString(fileBytes, Base64.DEFAULT);
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
                     }
 
+                    // 2) Fallback: if encodedImage still empty, try the old BLOB column "img"
+                    if ((encodedImage == null || encodedImage.isEmpty()) && imgBlobCol >= 0) {
+                        try {
+                            byte[] imgBytes = cursor.getBlob(imgBlobCol);
+                            if (imgBytes != null && imgBytes.length > 0) {
+                                encodedImage = Base64.encodeToString(imgBytes, Base64.DEFAULT);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    // Add to list (carImg contains either Base64 data or empty string)
                     carList.add(new Car(id, name, model, year, generation, engineType,
                             horsepower, transmission, color, encodedImage, catID, rating));
 
@@ -101,5 +140,15 @@ public class CarItem extends AppCompatActivity {
 
         adapter = new CarAdapter(carList, this);
         recyclerView.setAdapter(adapter);
+    }
+
+    // Helper: get column index safely (returns -1 if missing)
+    private int safeColumnIndex(Cursor cursor, String columnName) {
+        try {
+            return cursor.getColumnIndex(columnName);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        }
     }
 }

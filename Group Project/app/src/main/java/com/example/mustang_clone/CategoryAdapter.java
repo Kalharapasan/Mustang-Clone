@@ -70,10 +70,10 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Catego
         holder.edit_Btn.setOnClickListener(v -> {
             try {
                 Intent intent = new Intent(context, Category_Update.class);
-                intent.putExtra("CATEGORY_ID", item.getCategoryID());
-                intent.putExtra("CATEGORY_NAME", item.getCategoryName());
-                intent.putExtra("CATEGORY_MODEL", item.getCategoryModel());
-                intent.putExtra("CATEGORY_IMAGE", item.getCategoryIMG());
+                intent.putExtra("categoryID", item.getCategoryID());
+                intent.putExtra("categoryName", item.getCategoryName());
+                intent.putExtra("categoryModel", item.getCategoryModel());
+                intent.putExtra("categoryImg", item.getCategoryIMG());
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 context.startActivity(intent);
             } catch (Exception e) {
