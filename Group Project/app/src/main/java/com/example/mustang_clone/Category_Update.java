@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Base64;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -23,6 +24,7 @@ import java.io.InputStream;
 
 public class Category_Update extends AppCompatActivity {
 
+    private static final String TAG = "Category_Update";
     private Button updateCarImageBtn, updateCategoryBtn;
     private EditText carModelUpdate, carNameUpdate;
     private ImageView updateCategoryCarImage;
@@ -54,9 +56,14 @@ public class Category_Update extends AppCompatActivity {
             String categoryModel = intent.getStringExtra("categoryModel");
             String categoryImage = intent.getStringExtra("categoryImg");
 
-            if (categoryName != null) carNameUpdate.setText(categoryName);
-            if (categoryModel != null) carModelUpdate.setText(categoryModel);
+            Log.d(TAG, "Updating category ID: " + categoryId);
 
+            if (categoryName != null) {
+                carNameUpdate.setText(categoryName);
+            }
+            if (categoryModel != null) {
+                carModelUpdate.setText(categoryModel);
+            }
 
             if (categoryImage != null && !categoryImage.isEmpty()) {
                 try {
@@ -64,15 +71,19 @@ public class Category_Update extends AppCompatActivity {
                     Bitmap bitmap = BitmapFactory.decodeByteArray(imgBytes, 0, imgBytes.length);
                     if (bitmap != null) {
                         updateCategoryCarImage.setImageBitmap(bitmap);
-                        selectedImageBytes = imgBytes; // Store existing image
+                        selectedImageBytes = imgBytes; // Keep existing image
+                        Log.d(TAG, "Existing image loaded successfully");
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    Log.e(TAG, "Error loading existing image", e);
                     Toast.makeText(this, "Error loading image", Toast.LENGTH_SHORT).show();
                 }
             }
+        } else {
+            Toast.makeText(this, "No data provided", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
         }
-
 
         imagePickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
@@ -83,21 +94,44 @@ public class Category_Update extends AppCompatActivity {
                             InputStream inputStream = getContentResolver().openInputStream(imageUri);
                             Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
 
-                            if (bitmap != null) {
-                                updateCategoryCarImage.setImageBitmap(bitmap);
-
-                                // Convert to byte array
-                                ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
-                                selectedImageBytes = stream.toByteArray();
-
-                                Toast.makeText(this, "Image selected successfully", Toast.LENGTH_SHORT).show();
+                            if (bitmap == null) {
+                                Toast.makeText(this, "Failed to decode image", Toast.LENGTH_SHORT).show();
+                                return;
                             }
 
+                            // Resize bitmap
+                            Bitmap resizedBitmap = resizeBitmap(bitmap, 800, 600);
+
+                            // Display new image
+                            updateCategoryCarImage.setImageBitmap(resizedBitmap);
+
+                            // Convert to byte array with compression
+                            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                            resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 60, stream);
+                            selectedImageBytes = stream.toByteArray();
+
+                            Log.d(TAG, "New image selected, size: " + selectedImageBytes.length + " bytes");
+
+                            // If still too large, compress more
+                            if (selectedImageBytes.length > 500000) {
+                                stream.reset();
+                                resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 40, stream);
+                                selectedImageBytes = stream.toByteArray();
+                                Log.d(TAG, "Image recompressed, new size: " + selectedImageBytes.length + " bytes");
+                            }
+
+                            Toast.makeText(this, "Image selected successfully", Toast.LENGTH_SHORT).show();
+
+                            // Clean up
+                            stream.close();
                             if (inputStream != null) inputStream.close();
+                            if (!bitmap.isRecycled() && bitmap != resizedBitmap) {
+                                bitmap.recycle();
+                            }
+
                         } catch (Exception e) {
-                            e.printStackTrace();
-                            Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
+                            Log.e(TAG, "Error loading new image", e);
+                            Toast.makeText(this, "Failed to load image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                         }
                     }
                 }
@@ -117,8 +151,15 @@ public class Category_Update extends AppCompatActivity {
                 return;
             }
 
-            if (name.isEmpty() || model.isEmpty()) {
-                Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show();
+            if (name.isEmpty()) {
+                Toast.makeText(this, "Please enter category name", Toast.LENGTH_SHORT).show();
+                carNameUpdate.requestFocus();
+                return;
+            }
+
+            if (model.isEmpty()) {
+                Toast.makeText(this, "Please enter category model", Toast.LENGTH_SHORT).show();
+                carModelUpdate.requestFocus();
                 return;
             }
 
@@ -127,15 +168,53 @@ public class Category_Update extends AppCompatActivity {
                 return;
             }
 
+            // Disable button to prevent double-clicking
+            updateCategoryBtn.setEnabled(false);
+
             int rows = dbHelp.updateCategory(categoryId, name, selectedImageBytes, model);
+
             if (rows > 0) {
                 Toast.makeText(this, "Category updated successfully", Toast.LENGTH_SHORT).show();
+                Log.d(TAG, "Category updated successfully");
+                setResult(RESULT_OK);
                 finish();
             } else {
                 Toast.makeText(this, "Failed to update category", Toast.LENGTH_SHORT).show();
+                Log.e(TAG, "Failed to update category");
+                updateCategoryBtn.setEnabled(true);
             }
         });
 
         backButton.setOnClickListener(v -> finish());
+    }
+
+    private Bitmap resizeBitmap(Bitmap image, int maxWidth, int maxHeight) {
+        if (image == null) return null;
+
+        int width = image.getWidth();
+        int height = image.getHeight();
+
+        float ratioBitmap = (float) width / (float) height;
+        float ratioMax = (float) maxWidth / (float) maxHeight;
+
+        int finalWidth = maxWidth;
+        int finalHeight = maxHeight;
+
+        if (ratioMax > ratioBitmap) {
+            finalWidth = (int) ((float) maxHeight * ratioBitmap);
+        } else {
+            finalHeight = (int) ((float) maxWidth / ratioBitmap);
+        }
+
+        return Bitmap.createScaledBitmap(image, finalWidth, finalHeight, true);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Clean up to prevent memory leaks
+        if (updateCategoryCarImage != null) {
+            updateCategoryCarImage.setImageDrawable(null);
+        }
     }
 }

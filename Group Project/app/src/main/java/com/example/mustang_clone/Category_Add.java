@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -22,6 +23,7 @@ import java.io.InputStream;
 
 public class Category_Add extends AppCompatActivity {
 
+    private static final String TAG = "Category_Add";
     private Button inputCarImageBtn, addCategoryBtn;
     private EditText carModelInput, carNameInput;
     private ImageView addCategoryCarImage;
@@ -56,18 +58,44 @@ public class Category_Add extends AppCompatActivity {
                             InputStream inputStream = getContentResolver().openInputStream(imageUri);
                             Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
 
-                            // Display selected image
-                            addCategoryCarImage.setImageBitmap(bitmap);
+                            if (bitmap == null) {
+                                Toast.makeText(this, "Failed to decode image", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
 
-                            // Convert to byte array
+                            // Resize bitmap to reasonable size
+                            Bitmap resizedBitmap = resizeBitmap(bitmap, 800, 600);
+
+                            // Display selected image
+                            addCategoryCarImage.setImageBitmap(resizedBitmap);
+
+                            // Convert to byte array with compression
                             ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                            resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 60, stream);
                             selectedImageBytes = stream.toByteArray();
 
+                            Log.d(TAG, "Image selected, size: " + selectedImageBytes.length + " bytes");
+
+                            // If still too large, compress more
+                            if (selectedImageBytes.length > 500000) {
+                                stream.reset();
+                                resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 40, stream);
+                                selectedImageBytes = stream.toByteArray();
+                                Log.d(TAG, "Image recompressed, new size: " + selectedImageBytes.length + " bytes");
+                            }
+
                             Toast.makeText(this, "Image selected successfully", Toast.LENGTH_SHORT).show();
+
+                            // Clean up
+                            stream.close();
+                            if (inputStream != null) inputStream.close();
+                            if (!bitmap.isRecycled() && bitmap != resizedBitmap) {
+                                bitmap.recycle();
+                            }
+
                         } catch (Exception e) {
-                            Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
-                            e.printStackTrace();
+                            Log.e(TAG, "Error loading image", e);
+                            Toast.makeText(this, "Failed to load image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                         }
                     }
                 }
@@ -86,11 +114,13 @@ public class Category_Add extends AppCompatActivity {
 
             if (name.isEmpty()) {
                 Toast.makeText(this, "Please enter category name", Toast.LENGTH_SHORT).show();
+                carNameInput.requestFocus();
                 return;
             }
 
             if (model.isEmpty()) {
                 Toast.makeText(this, "Please enter category model", Toast.LENGTH_SHORT).show();
+                carModelInput.requestFocus();
                 return;
             }
 
@@ -99,17 +129,53 @@ public class Category_Add extends AppCompatActivity {
                 return;
             }
 
+            // Disable button to prevent double-clicking
+            addCategoryBtn.setEnabled(false);
+
             long id = dbHelp.addCategory(name, selectedImageBytes, model);
 
             if (id > 0) {
                 Toast.makeText(this, "Category added successfully", Toast.LENGTH_SHORT).show();
+                Log.d(TAG, "Category added with ID: " + id);
                 finish(); // Go back to Category activity
             } else {
                 Toast.makeText(this, "Failed to add category", Toast.LENGTH_SHORT).show();
+                Log.e(TAG, "Failed to add category");
+                addCategoryBtn.setEnabled(true);
             }
         });
 
         // Back button
         backButton.setOnClickListener(v -> finish());
+    }
+
+    private Bitmap resizeBitmap(Bitmap image, int maxWidth, int maxHeight) {
+        if (image == null) return null;
+
+        int width = image.getWidth();
+        int height = image.getHeight();
+
+        float ratioBitmap = (float) width / (float) height;
+        float ratioMax = (float) maxWidth / (float) maxHeight;
+
+        int finalWidth = maxWidth;
+        int finalHeight = maxHeight;
+
+        if (ratioMax > ratioBitmap) {
+            finalWidth = (int) ((float) maxHeight * ratioBitmap);
+        } else {
+            finalHeight = (int) ((float) maxWidth / ratioBitmap);
+        }
+
+        return Bitmap.createScaledBitmap(image, finalWidth, finalHeight, true);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Clean up to prevent memory leaks
+        if (addCategoryCarImage != null) {
+            addCategoryCarImage.setImageDrawable(null);
+        }
     }
 }

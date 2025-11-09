@@ -5,6 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 
@@ -15,6 +16,7 @@ import java.io.IOException;
 
 public class DBHelp extends SQLiteOpenHelper {
 
+    private static final String TAG = "DBHelp";
     private static final int DATABASE_VERSION = 1;
     private static final String DATABASE_NAME = "mustangDB.db";
 
@@ -41,20 +43,23 @@ public class DBHelp extends SQLiteOpenHelper {
 
     public DBHelp(@Nullable Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        Log.d(TAG, "DBHelp constructor called");
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
+        Log.d(TAG, "onCreate - Creating database tables");
+
         String CREATE_CATEGORY_TABLE = "CREATE TABLE " + TABLE_CATEGORY + " (" +
                 KEY_CATEGORY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                KEY_CATEGORY_NAME + " TEXT, " +
+                KEY_CATEGORY_NAME + " TEXT NOT NULL, " +
                 KEY_CATEGORY_IMG + " BLOB, " +
                 KEY_CATEGORY_MODEL + " TEXT" +
                 ")";
 
         String CREATE_CAR_TABLE = "CREATE TABLE " + TABLE_CAR + " (" +
                 KEY_CAR_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                KEY_CAR_NAME + " TEXT, " +
+                KEY_CAR_NAME + " TEXT NOT NULL, " +
                 KEY_CAR_MODEL + " TEXT, " +
                 KEY_YEAR + " TEXT, " +
                 KEY_GENERATION + " TEXT, " +
@@ -66,22 +71,45 @@ public class DBHelp extends SQLiteOpenHelper {
                 KEY_CATEGORY_REF_ID + " INTEGER, " +
                 KEY_RATING + " REAL, " +
                 "FOREIGN KEY(" + KEY_CATEGORY_REF_ID + ") REFERENCES " +
-                TABLE_CATEGORY + "(" + KEY_CATEGORY_ID + ")" +
+                TABLE_CATEGORY + "(" + KEY_CATEGORY_ID + ") ON DELETE CASCADE" +
                 ")";
 
-        db.execSQL(CREATE_CATEGORY_TABLE);
-        db.execSQL(CREATE_CAR_TABLE);
+        try {
+            db.execSQL(CREATE_CATEGORY_TABLE);
+            Log.d(TAG, "Category table created successfully");
+
+            db.execSQL(CREATE_CAR_TABLE);
+            Log.d(TAG, "Car table created successfully");
+        } catch (Exception e) {
+            Log.e(TAG, "Error creating tables", e);
+        }
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_CAR);
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_CATEGORY);
-        onCreate(db);
+        Log.d(TAG, "onUpgrade - Upgrading database from version " + oldVersion + " to " + newVersion);
+
+        try {
+            db.execSQL("DROP TABLE IF EXISTS " + TABLE_CAR);
+            db.execSQL("DROP TABLE IF EXISTS " + TABLE_CATEGORY);
+            onCreate(db);
+            Log.d(TAG, "Database upgraded successfully");
+        } catch (Exception e) {
+            Log.e(TAG, "Error upgrading database", e);
+        }
+    }
+
+    @Override
+    public void onConfigure(SQLiteDatabase db) {
+        super.onConfigure(db);
+        db.setForeignKeyConstraintsEnabled(true);
     }
 
     // ===================== CATEGORY CRUD =====================
     public long addCategory(String name, byte[] img, String model) {
+        Log.d(TAG, "addCategory - Name: " + name + ", Model: " + model + ", Image size: " +
+                (img != null ? img.length : 0) + " bytes");
+
         SQLiteDatabase db = null;
         long id = -1;
         try {
@@ -91,20 +119,44 @@ public class DBHelp extends SQLiteOpenHelper {
             values.put(KEY_CATEGORY_IMG, img);
             values.put(KEY_CATEGORY_MODEL, model);
             id = db.insert(TABLE_CATEGORY, null, values);
+            Log.d(TAG, "Category added with ID: " + id);
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Error adding category", e);
         } finally {
-            if (db != null) db.close();
+            if (db != null && db.isOpen()) {
+                db.close();
+                Log.d(TAG, "Database closed after adding category");
+            }
         }
         return id;
     }
 
     public Cursor getAllCategories() {
-        SQLiteDatabase db = this.getReadableDatabase();
-        return db.rawQuery("SELECT * FROM " + TABLE_CATEGORY, null);
+        Log.d(TAG, "getAllCategories called");
+        SQLiteDatabase db = null;
+        Cursor cursor = null;
+        try {
+            db = this.getReadableDatabase();
+            String query = "SELECT * FROM " + TABLE_CATEGORY + " ORDER BY " + KEY_CATEGORY_ID + " DESC";
+            cursor = db.rawQuery(query, null);
+            int count = cursor != null ? cursor.getCount() : 0;
+            Log.d(TAG, "getAllCategories returning cursor with " + count + " rows");
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting all categories", e);
+            if (cursor != null) {
+                cursor.close();
+            }
+            if (db != null && db.isOpen()) {
+                db.close();
+            }
+            return null;
+        }
+        return cursor;
     }
 
     public int updateCategory(int id, String name, byte[] img, String model) {
+        Log.d(TAG, "updateCategory - ID: " + id + ", Name: " + name);
+
         SQLiteDatabase db = null;
         int rows = 0;
         try {
@@ -115,24 +167,57 @@ public class DBHelp extends SQLiteOpenHelper {
             values.put(KEY_CATEGORY_MODEL, model);
             rows = db.update(TABLE_CATEGORY, values, KEY_CATEGORY_ID + "=?",
                     new String[]{String.valueOf(id)});
+            Log.d(TAG, "Updated " + rows + " category rows");
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Error updating category", e);
         } finally {
-            if (db != null) db.close();
+            if (db != null && db.isOpen()) {
+                db.close();
+            }
         }
         return rows;
     }
 
     public void deleteCategory(int id) {
+        Log.d(TAG, "deleteCategory - ID: " + id);
+
         SQLiteDatabase db = null;
         try {
             db = this.getWritableDatabase();
-            db.delete(TABLE_CATEGORY, KEY_CATEGORY_ID + "=?",
+
+            // Get all cars for this category and delete their images
+            Cursor cursor = db.rawQuery("SELECT " + KEY_CAR_IMG_PATH + " FROM " + TABLE_CAR +
+                    " WHERE " + KEY_CATEGORY_REF_ID + "=?", new String[]{String.valueOf(id)});
+
+            if (cursor != null) {
+                while (cursor.moveToNext()) {
+                    String imgPath = cursor.getString(0);
+                    if (imgPath != null && !imgPath.isEmpty()) {
+                        File imgFile = new File(imgPath);
+                        if (imgFile.exists()) {
+                            imgFile.delete();
+                            Log.d(TAG, "Deleted car image: " + imgPath);
+                        }
+                    }
+                }
+                cursor.close();
+            }
+
+            // Delete cars first (cascade should handle this, but being explicit)
+            int carsDeleted = db.delete(TABLE_CAR, KEY_CATEGORY_REF_ID + "=?",
                     new String[]{String.valueOf(id)});
+            Log.d(TAG, "Deleted " + carsDeleted + " cars for category " + id);
+
+            // Delete category
+            int categoriesDeleted = db.delete(TABLE_CATEGORY, KEY_CATEGORY_ID + "=?",
+                    new String[]{String.valueOf(id)});
+            Log.d(TAG, "Deleted category with ID: " + id + " (rows affected: " + categoriesDeleted + ")");
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Error deleting category", e);
         } finally {
-            if (db != null) db.close();
+            if (db != null && db.isOpen()) {
+                db.close();
+            }
         }
     }
 
@@ -140,6 +225,8 @@ public class DBHelp extends SQLiteOpenHelper {
     public long addCar(String name, String model, String year, String generation,
                        String engineType, String horsepower, String transmission,
                        String color, String imgPath, int categoryID, double rating) {
+
+        Log.d(TAG, "addCar - Name: " + name + ", Category ID: " + categoryID);
 
         SQLiteDatabase db = null;
         long id = -1;
@@ -159,29 +246,72 @@ public class DBHelp extends SQLiteOpenHelper {
             values.put(KEY_RATING, rating);
 
             id = db.insert(TABLE_CAR, null, values);
+            Log.d(TAG, "Car added with ID: " + id);
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Error adding car", e);
         } finally {
-            if (db != null) db.close();
+            if (db != null && db.isOpen()) {
+                db.close();
+            }
         }
         return id;
     }
 
     public Cursor getCarsByCategory(int categoryID) {
-        SQLiteDatabase db = this.getReadableDatabase();
-        return db.rawQuery("SELECT * FROM " + TABLE_CAR + " WHERE "
-                + KEY_CATEGORY_REF_ID + "=?", new String[]{String.valueOf(categoryID)});
+        Log.d(TAG, "getCarsByCategory - Category ID: " + categoryID);
+
+        SQLiteDatabase db = null;
+        Cursor cursor = null;
+        try {
+            db = this.getReadableDatabase();
+            String query = "SELECT * FROM " + TABLE_CAR + " WHERE " + KEY_CATEGORY_REF_ID +
+                    "=? ORDER BY " + KEY_CAR_ID + " DESC";
+            cursor = db.rawQuery(query, new String[]{String.valueOf(categoryID)});
+            int count = cursor != null ? cursor.getCount() : 0;
+            Log.d(TAG, "getCarsByCategory returning " + count + " cars");
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting cars by category", e);
+            if (cursor != null) {
+                cursor.close();
+            }
+            if (db != null && db.isOpen()) {
+                db.close();
+            }
+            return null;
+        }
+        return cursor;
     }
 
     public Cursor getAllCars() {
-        SQLiteDatabase db = this.getReadableDatabase();
-        return db.rawQuery("SELECT * FROM " + TABLE_CAR, null);
+        Log.d(TAG, "getAllCars called");
+
+        SQLiteDatabase db = null;
+        Cursor cursor = null;
+        try {
+            db = this.getReadableDatabase();
+            String query = "SELECT * FROM " + TABLE_CAR + " ORDER BY " + KEY_CAR_ID + " DESC";
+            cursor = db.rawQuery(query, null);
+            int count = cursor != null ? cursor.getCount() : 0;
+            Log.d(TAG, "getAllCars returning " + count + " cars");
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting all cars", e);
+            if (cursor != null) {
+                cursor.close();
+            }
+            if (db != null && db.isOpen()) {
+                db.close();
+            }
+            return null;
+        }
+        return cursor;
     }
 
     public int updateCar(int id, String name, String model, String year,
                          String generation, String engineType, String horsepower,
                          String transmission, String color, String imgPath,
                          int categoryID, double rating) {
+
+        Log.d(TAG, "updateCar - ID: " + id + ", Name: " + name);
 
         SQLiteDatabase db = null;
         int rows = 0;
@@ -202,60 +332,50 @@ public class DBHelp extends SQLiteOpenHelper {
 
             rows = db.update(TABLE_CAR, values, KEY_CAR_ID + "=?",
                     new String[]{String.valueOf(id)});
+            Log.d(TAG, "Updated " + rows + " car rows");
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Error updating car", e);
         } finally {
-            if (db != null) db.close();
+            if (db != null && db.isOpen()) {
+                db.close();
+            }
         }
         return rows;
     }
 
     public void deleteCar(int id) {
+        Log.d(TAG, "deleteCar - ID: " + id);
+
         SQLiteDatabase db = null;
         try {
             db = this.getWritableDatabase();
-            db.delete(TABLE_CAR, KEY_CAR_ID + "=?", new String[]{String.valueOf(id)});
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (db != null) db.close();
-        }
-    }
 
+            // Delete the image file
+            String query = "SELECT " + KEY_CAR_IMG_PATH + " FROM " + TABLE_CAR +
+                    " WHERE " + KEY_CAR_ID + "=?";
+            Cursor cursor = db.rawQuery(query, new String[]{String.valueOf(id)});
 
-    public byte[] readImageFile(String filePath) {
-        try {
-            File file = new File(filePath);
-            if (!file.exists()) return null;
-
-            FileInputStream fis = new FileInputStream(file);
-            byte[] data = new byte[(int) file.length()];
-            int bytesRead = fis.read(data);
-            fis.close();
-            return (bytesRead > 0) ? data : null;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-
-    public String saveBlobToFile(byte[] blob, Context context, String fileName) {
-        try {
-            if (blob == null || blob.length == 0) return null;
-
-            File dir = new File(context.getFilesDir(), "car_images");
-            if (!dir.exists()) dir.mkdirs();
-
-            File file = new File(dir, fileName);
-            try (FileOutputStream fos = new FileOutputStream(file)) {
-                fos.write(blob);
+            if (cursor != null && cursor.moveToFirst()) {
+                String imgPath = cursor.getString(0);
+                if (imgPath != null && !imgPath.isEmpty()) {
+                    File imgFile = new File(imgPath);
+                    if (imgFile.exists()) {
+                        boolean deleted = imgFile.delete();
+                        Log.d(TAG, "Image file deleted: " + deleted + " (" + imgPath + ")");
+                    }
+                }
+                cursor.close();
             }
 
-            return file.getAbsolutePath();
+            int carsDeleted = db.delete(TABLE_CAR, KEY_CAR_ID + "=?",
+                    new String[]{String.valueOf(id)});
+            Log.d(TAG, "Deleted car with ID: " + id + " (rows affected: " + carsDeleted + ")");
         } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+            Log.e(TAG, "Error deleting car", e);
+        } finally {
+            if (db != null && db.isOpen()) {
+                db.close();
+            }
         }
     }
 }

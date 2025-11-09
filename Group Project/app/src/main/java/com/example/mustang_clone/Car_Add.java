@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -21,6 +22,7 @@ import java.io.OutputStream;
 
 public class Car_Add extends AppCompatActivity {
 
+    private static final String TAG = "Car_Add";
     private Button inputCarImageBtn, addCarBtn;
     private EditText carModelInput, carNameInput, yearInput, generationInput;
     private EditText engineTypeInput, horsepowerInput, transmissionInput, colorInput, ratingInput;
@@ -52,7 +54,6 @@ public class Car_Add extends AppCompatActivity {
         dbHelp = new DBHelp(this);
         categoryID = getIntent().getIntExtra("CATEGORY_ID", -1);
 
-        // --- Image picker
         imagePickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
@@ -62,6 +63,7 @@ public class Car_Add extends AppCompatActivity {
                             savedImagePath = copyImageToAppStorage(imageUri);
                             if (savedImagePath != null) {
                                 Toast.makeText(this, "Image selected", Toast.LENGTH_SHORT).show();
+                                Log.d(TAG, "Image saved to: " + savedImagePath);
                             } else {
                                 Toast.makeText(this, "Failed to copy image", Toast.LENGTH_SHORT).show();
                             }
@@ -101,20 +103,25 @@ public class Car_Add extends AppCompatActivity {
             double rating;
             try {
                 rating = Double.parseDouble(ratingStr);
+                if (rating < 0 || rating > 5) {
+                    Toast.makeText(this, "Rating must be between 0 and 5", Toast.LENGTH_SHORT).show();
+                    return;
+                }
             } catch (NumberFormatException e) {
                 Toast.makeText(this, "Invalid rating format", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            // ✅ Add car using IMAGE PATH (not BLOB)
             long id = dbHelp.addCar(name, model, year, generation, engineType,
                     horsepower, transmission, color, savedImagePath, categoryID, rating);
 
             if (id > 0) {
                 Toast.makeText(this, "Car added successfully", Toast.LENGTH_SHORT).show();
+                Log.d(TAG, "Car added with ID: " + id);
                 finish();
             } else {
                 Toast.makeText(this, "Failed to add car", Toast.LENGTH_SHORT).show();
+                Log.e(TAG, "Failed to add car");
             }
         });
 
@@ -143,7 +150,7 @@ public class Car_Add extends AppCompatActivity {
             inputStream.close();
             return file.getAbsolutePath();
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Error copying image", e);
             return null;
         }
     }

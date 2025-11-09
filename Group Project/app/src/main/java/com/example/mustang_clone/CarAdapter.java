@@ -4,7 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.util.Base64;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,6 +22,7 @@ import java.util.List;
 
 public class CarAdapter extends RecyclerView.Adapter<CarAdapter.CarViewHolder> {
 
+    private static final String TAG = "CarAdapter";
     private final List<Car> carItems;
     private final Context context;
     private final DBHelp dbHelp;
@@ -46,46 +47,43 @@ public class CarAdapter extends RecyclerView.Adapter<CarAdapter.CarViewHolder> {
         holder.model.setText(item.getCarModel());
         holder.carName.setText(item.getCarName());
 
-        // Load image safely
         Bitmap bitmap = null;
         try {
             if (item.getCarImg() != null && !item.getCarImg().isEmpty()) {
                 File file = new File(item.getCarImg());
                 if (file.exists()) {
                     bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
+                    Log.d(TAG, "Image loaded for car: " + item.getCarName());
                 } else {
-                    // fallback Base64 decode (if old BLOB data is still stored)
-                    byte[] bytes = Base64.decode(item.getCarImg(), Base64.DEFAULT);
-                    bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                    Log.w(TAG, "Image file not found: " + item.getCarImg());
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Error loading car image", e);
         }
 
         if (bitmap != null) {
             holder.image.setImageBitmap(bitmap);
         } else {
-            // optional placeholder drawable
-            holder.image.setImageResource(R.drawable.cobramustanf3d); // make sure this drawable exists
+            holder.image.setImageResource(R.drawable.cobramustanf3d);
         }
 
-        // Delete button
         holder.deleteBtn.setOnClickListener(v -> {
             dbHelp.deleteCar(item.getCarID());
             int pos = holder.getAdapterPosition();
-            carItems.remove(pos);
-            notifyItemRemoved(pos);
-            notifyItemRangeChanged(pos, carItems.size());
-            Toast.makeText(context, "Car deleted", Toast.LENGTH_SHORT).show();
+            if (pos != RecyclerView.NO_POSITION) {
+                carItems.remove(pos);
+                notifyItemRemoved(pos);
+                notifyItemRangeChanged(pos, carItems.size());
+                Toast.makeText(context, "Car deleted", Toast.LENGTH_SHORT).show();
+                Log.d(TAG, "Car deleted: " + item.getCarName());
+            }
         });
 
-        // Edit button
         holder.editBtn.setOnClickListener(v -> {
             Intent intent = new Intent(context, Car_Update.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
-            // Pass all current values
             intent.putExtra("CAR_ID", item.getCarID());
             intent.putExtra("CAR_NAME", item.getCarName());
             intent.putExtra("CAR_MODEL", item.getCarModel());
@@ -98,18 +96,16 @@ public class CarAdapter extends RecyclerView.Adapter<CarAdapter.CarViewHolder> {
             intent.putExtra("CATEGORY_ID", item.getCategoryID());
             intent.putExtra("RATING", item.getRating());
 
-            // Ensure valid image path is passed
             String imagePath = item.getCarImg();
             if (imagePath != null && !imagePath.isEmpty() && new File(imagePath).exists()) {
                 intent.putExtra("CAR_IMAGE", imagePath);
             } else {
-                intent.putExtra("CAR_IMAGE", ""); // fallback empty
+                intent.putExtra("CAR_IMAGE", "");
             }
 
             context.startActivity(intent);
         });
 
-        // View car details
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(context, CarView.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

@@ -6,7 +6,7 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.util.Base64;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -25,6 +25,7 @@ import java.io.OutputStream;
 
 public class Car_Update extends AppCompatActivity {
 
+    private static final String TAG = "Car_Update";
     private ImageView updateCarImageBtn;
     private Button updateCarBtn;
     private EditText carModelUpdate, carNameUpdate, yearUpdate, generationUpdate;
@@ -67,7 +68,6 @@ public class Car_Update extends AppCompatActivity {
         carId = intent.getIntExtra("CAR_ID", -1);
         categoryID = intent.getIntExtra("CATEGORY_ID", -1);
 
-        // Set existing data
         carNameUpdate.setText(intent.getStringExtra("CAR_NAME"));
         carModelUpdate.setText(intent.getStringExtra("CAR_MODEL"));
         yearUpdate.setText(intent.getStringExtra("YEAR"));
@@ -84,12 +84,14 @@ public class Car_Update extends AppCompatActivity {
             File file = new File(carImageExtra);
             if (file.exists()) {
                 Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath());
-                if (bitmap != null) updateCarImageBtn.setImageBitmap(bitmap);
+                if (bitmap != null) {
+                    updateCarImageBtn.setImageBitmap(bitmap);
+                    Log.d(TAG, "Existing image loaded");
+                }
                 savedImagePath = file.getAbsolutePath();
             }
         }
 
-        // --- Image picker
         imagePickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
@@ -104,13 +106,14 @@ public class Car_Update extends AppCompatActivity {
                                     Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
                                     if (bitmap != null) updateCarImageBtn.setImageBitmap(bitmap);
                                     Toast.makeText(this, "Image selected", Toast.LENGTH_SHORT).show();
+                                    Log.d(TAG, "New image selected");
                                 } else {
                                     Toast.makeText(this, "Failed to copy image", Toast.LENGTH_SHORT).show();
                                 }
                             }
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        Log.e(TAG, "Error loading image", e);
                         Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
                     }
                 }
@@ -147,12 +150,15 @@ public class Car_Update extends AppCompatActivity {
             double rating;
             try {
                 rating = Double.parseDouble(ratingStr);
+                if (rating < 0 || rating > 5) {
+                    Toast.makeText(this, "Rating must be between 0 and 5", Toast.LENGTH_SHORT).show();
+                    return;
+                }
             } catch (NumberFormatException e) {
                 Toast.makeText(this, "Invalid rating format", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            // ✅ Update car using IMAGE PATH (not BLOB)
             int rowsAffected = dbHelp.updateCar(
                     carId, name, model, year, generation,
                     engineType, horsepower, transmission, color,
@@ -161,9 +167,11 @@ public class Car_Update extends AppCompatActivity {
 
             if (rowsAffected > 0) {
                 Toast.makeText(this, "Car updated successfully", Toast.LENGTH_SHORT).show();
+                Log.d(TAG, "Car updated successfully");
                 finish();
             } else {
                 Toast.makeText(this, "Failed to update car", Toast.LENGTH_SHORT).show();
+                Log.e(TAG, "Failed to update car");
             }
         });
 
@@ -192,7 +200,7 @@ public class Car_Update extends AppCompatActivity {
             inputStream.close();
             return file.getAbsolutePath();
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Error copying image", e);
             return null;
         }
     }

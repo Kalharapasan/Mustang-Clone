@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.ImageView;
 import android.widget.RatingBar;
 import android.widget.TextView;
@@ -17,6 +18,7 @@ import java.io.File;
 
 public class CarView extends AppCompatActivity {
 
+    private static final String TAG = "CarView";
     private ShapeableImageView backButton;
     private ImageView carImageView, deleteBtn, editBtn;
     private TextView carName, carModel, year, generation, engineType;
@@ -84,25 +86,26 @@ public class CarView extends AppCompatActivity {
             ratingText.setText(String.format("Rating: %.1f ⭐", ratingValue));
             ratingBar.setRating((float) ratingValue);
 
-            // ✅ FIXED: Load image from file path
             if (carImgPath != null && !carImgPath.isEmpty()) {
                 File imgFile = new File(carImgPath);
                 if (imgFile.exists()) {
                     Bitmap bitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
                     if (bitmap != null) {
                         carImageView.setImageBitmap(bitmap);
+                        Log.d(TAG, "Image loaded successfully from: " + carImgPath);
                     } else {
                         carImageView.setImageResource(R.drawable.cobramustanf3d);
+                        Log.w(TAG, "Failed to decode image bitmap");
                     }
                 } else {
-                    Toast.makeText(this, "Image file not found", Toast.LENGTH_SHORT).show();
                     carImageView.setImageResource(R.drawable.cobramustanf3d);
+                    Log.w(TAG, "Image file not found: " + carImgPath);
                 }
             } else {
                 carImageView.setImageResource(R.drawable.cobramustanf3d);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Error displaying car details", e);
             Toast.makeText(this, "Error displaying car details", Toast.LENGTH_SHORT).show();
         }
     }
