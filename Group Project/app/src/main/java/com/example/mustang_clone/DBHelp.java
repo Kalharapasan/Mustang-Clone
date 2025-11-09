@@ -9,15 +9,10 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-
 public class DBHelp extends SQLiteOpenHelper {
 
     private static final String TAG = "DBHelp";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 5; // Increased version for schema change
     private static final String DATABASE_NAME = "mustangDB.db";
 
     private static final String TABLE_CATEGORY = "Category";
@@ -37,7 +32,7 @@ public class DBHelp extends SQLiteOpenHelper {
     private static final String KEY_HORSEPOWER = "horsepower";
     private static final String KEY_TRANSMISSION = "transmission";
     private static final String KEY_COLOR = "color";
-    private static final String KEY_CAR_IMG_PATH = "carImgPath";
+    private static final String KEY_CAR_IMG = "carImg"; // Changed from carImgPath
     private static final String KEY_CATEGORY_REF_ID = "categoryID";
     private static final String KEY_RATING = "rating";
 
@@ -67,7 +62,7 @@ public class DBHelp extends SQLiteOpenHelper {
                 KEY_HORSEPOWER + " TEXT, " +
                 KEY_TRANSMISSION + " TEXT, " +
                 KEY_COLOR + " TEXT, " +
-                KEY_CAR_IMG_PATH + " TEXT, " +
+                KEY_CAR_IMG + " BLOB, " + // Changed to BLOB
                 KEY_CATEGORY_REF_ID + " INTEGER, " +
                 KEY_RATING + " REAL, " +
                 "FOREIGN KEY(" + KEY_CATEGORY_REF_ID + ") REFERENCES " +
@@ -185,24 +180,6 @@ public class DBHelp extends SQLiteOpenHelper {
         try {
             db = this.getWritableDatabase();
 
-            // Get all cars for this category and delete their images
-            Cursor cursor = db.rawQuery("SELECT " + KEY_CAR_IMG_PATH + " FROM " + TABLE_CAR +
-                    " WHERE " + KEY_CATEGORY_REF_ID + "=?", new String[]{String.valueOf(id)});
-
-            if (cursor != null) {
-                while (cursor.moveToNext()) {
-                    String imgPath = cursor.getString(0);
-                    if (imgPath != null && !imgPath.isEmpty()) {
-                        File imgFile = new File(imgPath);
-                        if (imgFile.exists()) {
-                            imgFile.delete();
-                            Log.d(TAG, "Deleted car image: " + imgPath);
-                        }
-                    }
-                }
-                cursor.close();
-            }
-
             // Delete cars first (cascade should handle this, but being explicit)
             int carsDeleted = db.delete(TABLE_CAR, KEY_CATEGORY_REF_ID + "=?",
                     new String[]{String.valueOf(id)});
@@ -224,9 +201,10 @@ public class DBHelp extends SQLiteOpenHelper {
     // ===================== CAR CRUD =====================
     public long addCar(String name, String model, String year, String generation,
                        String engineType, String horsepower, String transmission,
-                       String color, String imgPath, int categoryID, double rating) {
+                       String color, byte[] img, int categoryID, double rating) {
 
-        Log.d(TAG, "addCar - Name: " + name + ", Category ID: " + categoryID);
+        Log.d(TAG, "addCar - Name: " + name + ", Category ID: " + categoryID +
+                ", Image size: " + (img != null ? img.length : 0) + " bytes");
 
         SQLiteDatabase db = null;
         long id = -1;
@@ -241,7 +219,7 @@ public class DBHelp extends SQLiteOpenHelper {
             values.put(KEY_HORSEPOWER, horsepower);
             values.put(KEY_TRANSMISSION, transmission);
             values.put(KEY_COLOR, color);
-            values.put(KEY_CAR_IMG_PATH, imgPath);
+            values.put(KEY_CAR_IMG, img); // Changed to BLOB
             values.put(KEY_CATEGORY_REF_ID, categoryID);
             values.put(KEY_RATING, rating);
 
@@ -308,10 +286,11 @@ public class DBHelp extends SQLiteOpenHelper {
 
     public int updateCar(int id, String name, String model, String year,
                          String generation, String engineType, String horsepower,
-                         String transmission, String color, String imgPath,
+                         String transmission, String color, byte[] img,
                          int categoryID, double rating) {
 
-        Log.d(TAG, "updateCar - ID: " + id + ", Name: " + name);
+        Log.d(TAG, "updateCar - ID: " + id + ", Name: " + name +
+                ", Image size: " + (img != null ? img.length : 0) + " bytes");
 
         SQLiteDatabase db = null;
         int rows = 0;
@@ -326,7 +305,7 @@ public class DBHelp extends SQLiteOpenHelper {
             values.put(KEY_HORSEPOWER, horsepower);
             values.put(KEY_TRANSMISSION, transmission);
             values.put(KEY_COLOR, color);
-            values.put(KEY_CAR_IMG_PATH, imgPath);
+            values.put(KEY_CAR_IMG, img); // Changed to BLOB
             values.put(KEY_CATEGORY_REF_ID, categoryID);
             values.put(KEY_RATING, rating);
 
@@ -349,23 +328,6 @@ public class DBHelp extends SQLiteOpenHelper {
         SQLiteDatabase db = null;
         try {
             db = this.getWritableDatabase();
-
-            // Delete the image file
-            String query = "SELECT " + KEY_CAR_IMG_PATH + " FROM " + TABLE_CAR +
-                    " WHERE " + KEY_CAR_ID + "=?";
-            Cursor cursor = db.rawQuery(query, new String[]{String.valueOf(id)});
-
-            if (cursor != null && cursor.moveToFirst()) {
-                String imgPath = cursor.getString(0);
-                if (imgPath != null && !imgPath.isEmpty()) {
-                    File imgFile = new File(imgPath);
-                    if (imgFile.exists()) {
-                        boolean deleted = imgFile.delete();
-                        Log.d(TAG, "Image file deleted: " + deleted + " (" + imgPath + ")");
-                    }
-                }
-                cursor.close();
-            }
 
             int carsDeleted = db.delete(TABLE_CAR, KEY_CAR_ID + "=?",
                     new String[]{String.valueOf(id)});

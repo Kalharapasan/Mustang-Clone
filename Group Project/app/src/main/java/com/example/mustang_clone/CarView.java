@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.util.Base64;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.RatingBar;
@@ -13,8 +14,6 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.imageview.ShapeableImageView;
-
-import java.io.File;
 
 public class CarView extends AppCompatActivity {
 
@@ -72,7 +71,7 @@ public class CarView extends AppCompatActivity {
             String transStr = intent.getStringExtra("TRANSMISSION");
             String colorStr = intent.getStringExtra("COLOR");
             double ratingValue = intent.getDoubleExtra("RATING", 0.0);
-            String carImgPath = intent.getStringExtra("CAR_IMAGE");
+            String carImageBase64 = intent.getStringExtra("CAR_IMAGE");
 
             if (nameStr != null) carName.setText(nameStr);
             if (modelStr != null) carModel.setText("Model: " + modelStr);
@@ -86,23 +85,25 @@ public class CarView extends AppCompatActivity {
             ratingText.setText(String.format("Rating: %.1f ⭐", ratingValue));
             ratingBar.setRating((float) ratingValue);
 
-            if (carImgPath != null && !carImgPath.isEmpty()) {
-                File imgFile = new File(carImgPath);
-                if (imgFile.exists()) {
-                    Bitmap bitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+            // Load image from Base64
+            if (carImageBase64 != null && !carImageBase64.isEmpty()) {
+                try {
+                    byte[] imgBytes = Base64.decode(carImageBase64, Base64.DEFAULT);
+                    Bitmap bitmap = BitmapFactory.decodeByteArray(imgBytes, 0, imgBytes.length);
                     if (bitmap != null) {
                         carImageView.setImageBitmap(bitmap);
-                        Log.d(TAG, "Image loaded successfully from: " + carImgPath);
+                        Log.d(TAG, "Image loaded successfully");
                     } else {
                         carImageView.setImageResource(R.drawable.cobramustanf3d);
                         Log.w(TAG, "Failed to decode image bitmap");
                     }
-                } else {
+                } catch (Exception e) {
                     carImageView.setImageResource(R.drawable.cobramustanf3d);
-                    Log.w(TAG, "Image file not found: " + carImgPath);
+                    Log.e(TAG, "Error decoding Base64 image", e);
                 }
             } else {
                 carImageView.setImageResource(R.drawable.cobramustanf3d);
+                Log.d(TAG, "No image data provided");
             }
         } catch (Exception e) {
             Log.e(TAG, "Error displaying car details", e);

@@ -3,6 +3,7 @@ package com.example.mustang_clone;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.util.Base64;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -101,7 +102,7 @@ public class CarItem extends AppCompatActivity {
                 int hpCol = safeColumnIndex(cursor, "horsepower");
                 int transCol = safeColumnIndex(cursor, "transmission");
                 int colorCol = safeColumnIndex(cursor, "color");
-                int imgPathCol = safeColumnIndex(cursor, "carImgPath");
+                int imgCol = safeColumnIndex(cursor, "carImg"); // Changed from carImgPath
                 int catCol = safeColumnIndex(cursor, "categoryID");
                 int ratingCol = safeColumnIndex(cursor, "rating");
 
@@ -126,10 +127,19 @@ public class CarItem extends AppCompatActivity {
                         String color = colorCol >= 0 ? cursor.getString(colorCol) : "";
                         int catID = catCol >= 0 ? cursor.getInt(catCol) : -1;
                         double rating = ratingCol >= 0 ? cursor.getDouble(ratingCol) : 0.0;
-                        String imagePath = imgPathCol >= 0 ? cursor.getString(imgPathCol) : null;
+
+                        // Get image as BLOB and encode to Base64
+                        String encodedImage = "";
+                        if (imgCol >= 0) {
+                            byte[] imgBytes = cursor.getBlob(imgCol);
+                            if (imgBytes != null && imgBytes.length > 0) {
+                                encodedImage = Base64.encodeToString(imgBytes, Base64.DEFAULT);
+                                Log.d(TAG, "Image encoded, size: " + imgBytes.length + " bytes");
+                            }
+                        }
 
                         Car car = new Car(id, name, model, year, generation, engineType,
-                                horsepower, transmission, color, imagePath, catID, rating);
+                                horsepower, transmission, color, encodedImage, catID, rating);
                         carList.add(car);
 
                         Log.d(TAG, "Added car: " + name + " (ID: " + id + ")");

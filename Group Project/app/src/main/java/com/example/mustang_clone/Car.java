@@ -10,7 +10,7 @@ public class Car {
     private String horsepower;
     private String transmission;
     private String color;
-    private String carImg; // path to image file
+    private String carImg; // Base64 encoded string (like CategoryItem)
     private int categoryID;
     private double rating;
 

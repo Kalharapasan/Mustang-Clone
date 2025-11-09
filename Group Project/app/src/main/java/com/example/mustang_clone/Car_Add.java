@@ -1,6 +1,8 @@
 package com.example.mustang_clone;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -15,10 +17,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.imageview.ShapeableImageView;
 
-import java.io.File;
-import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.io.OutputStream;
 
 public class Car_Add extends AppCompatActivity {
 
@@ -26,9 +26,9 @@ public class Car_Add extends AppCompatActivity {
     private Button inputCarImageBtn, addCarBtn;
     private EditText carModelInput, carNameInput, yearInput, generationInput;
     private EditText engineTypeInput, horsepowerInput, transmissionInput, colorInput, ratingInput;
-    private ShapeableImageView backButton;
+    private ShapeableImageView backButton, addCarImageView;
     private DBHelp dbHelp;
-    private String savedImagePath = null;
+    private byte[] selectedImageBytes = null;
     private int categoryID;
 
     private ActivityResultLauncher<Intent> imagePickerLauncher;
@@ -60,13 +60,7 @@ public class Car_Add extends AppCompatActivity {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         Uri imageUri = result.getData().getData();
                         if (imageUri != null) {
-                            savedImagePath = copyImageToAppStorage(imageUri);
-                            if (savedImagePath != null) {
-                                Toast.makeText(this, "Image selected", Toast.LENGTH_SHORT).show();
-                                Log.d(TAG, "Image saved to: " + savedImagePath);
-                            } else {
-                                Toast.makeText(this, "Failed to copy image", Toast.LENGTH_SHORT).show();
-                            }
+                            handleImageSelection(imageUri);
                         }
                     }
                 }
@@ -95,7 +89,7 @@ public class Car_Add extends AppCompatActivity {
                 return;
             }
 
-            if (savedImagePath == null) {
+            if (selectedImageBytes == null) {
                 Toast.makeText(this, "Please select an image", Toast.LENGTH_SHORT).show();
                 return;
             }
@@ -113,7 +107,7 @@ public class Car_Add extends AppCompatActivity {
             }
 
             long id = dbHelp.addCar(name, model, year, generation, engineType,
-                    horsepower, transmission, color, savedImagePath, categoryID, rating);
+                    horsepower, transmission, color, selectedImageBytes, categoryID, rating);
 
             if (id > 0) {
                 Toast.makeText(this, "Car added successfully", Toast.LENGTH_SHORT).show();
@@ -128,30 +122,75 @@ public class Car_Add extends AppCompatActivity {
         backButton.setOnClickListener(v -> finish());
     }
 
-    private String copyImageToAppStorage(Uri uri) {
+    private void handleImageSelection(Uri imageUri) {
         try {
-            InputStream inputStream = getContentResolver().openInputStream(uri);
-            if (inputStream == null) return null;
-
-            File directory = new File(getFilesDir(), "car_images");
-            if (!directory.exists() && !directory.mkdirs()) return null;
-
-            String fileName = "car_" + System.currentTimeMillis() + ".jpg";
-            File file = new File(directory, fileName);
-
-            try (OutputStream outputStream = new FileOutputStream(file)) {
-                byte[] buffer = new byte[4096];
-                int bytesRead;
-                while ((bytesRead = inputStream.read(buffer)) != -1) {
-                    outputStream.write(buffer, 0, bytesRead);
-                }
+            InputStream inputStream = getContentResolver().openInputStream(imageUri);
+            if (inputStream == null) {
+                Toast.makeText(this, "Failed to read image", Toast.LENGTH_SHORT).show();
+                return;
             }
 
+            Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
             inputStream.close();
-            return file.getAbsolutePath();
+
+            if (bitmap == null) {
+                Toast.makeText(this, "Failed to decode image", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Resize bitmap to reasonable size (max 800x600)
+            Bitmap resizedBitmap = resizeBitmap(bitmap, 800, 600);
+
+            // Convert to byte array with compression
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 60, stream);
+            selectedImageBytes = stream.toByteArray();
+
+            Log.d(TAG, "Image selected, size: " + selectedImageBytes.length + " bytes");
+
+            // If still too large (> 500KB), compress more
+            if (selectedImageBytes.length > 500000) {
+                stream.reset();
+                resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 40, stream);
+                selectedImageBytes = stream.toByteArray();
+                Log.d(TAG, "Image recompressed, new size: " + selectedImageBytes.length + " bytes");
+            }
+
+            Toast.makeText(this, "Image selected", Toast.LENGTH_SHORT).show();
+
+            // Clean up
+            stream.close();
+            if (!resizedBitmap.isRecycled()) {
+                resizedBitmap.recycle();
+            }
+            if (!bitmap.isRecycled() && bitmap != resizedBitmap) {
+                bitmap.recycle();
+            }
+
         } catch (Exception e) {
-            Log.e(TAG, "Error copying image", e);
-            return null;
+            Log.e(TAG, "Error loading image", e);
+            Toast.makeText(this, "Failed to load image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private Bitmap resizeBitmap(Bitmap image, int maxWidth, int maxHeight) {
+        if (image == null) return null;
+
+        int width = image.getWidth();
+        int height = image.getHeight();
+
+        float ratioBitmap = (float) width / (float) height;
+        float ratioMax = (float) maxWidth / (float) maxHeight;
+
+        int finalWidth = maxWidth;
+        int finalHeight = maxHeight;
+
+        if (ratioMax > ratioBitmap) {
+            finalWidth = (int) ((float) maxHeight * ratioBitmap);
+        } else {
+            finalHeight = (int) ((float) maxWidth / ratioBitmap);
+        }
+
+        return Bitmap.createScaledBitmap(image, finalWidth, finalHeight, true);
     }
 }
