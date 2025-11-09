@@ -1,12 +1,9 @@
 package com.example.mustang_clone;
 
-import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
-import android.util.Base64;
-import android.view.View;
 import android.widget.ImageView;
 import android.widget.RatingBar;
 import android.widget.TextView;
@@ -15,6 +12,8 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.imageview.ShapeableImageView;
+
+import java.io.File;
 
 public class CarView extends AppCompatActivity {
 
@@ -31,20 +30,15 @@ public class CarView extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_car_view);
 
-        // Initialize views
         initializeViews();
-
-        // Initialize database helper
         dbHelp = new DBHelp(this);
 
-        // Get data from intent
         Intent intent = getIntent();
         if (intent != null) {
             carId = intent.getIntExtra("CAR_ID", -1);
             displayCarDetails(intent);
         }
 
-        // Set up click listeners
         setupClickListeners();
     }
 
@@ -67,7 +61,6 @@ public class CarView extends AppCompatActivity {
 
     private void displayCarDetails(Intent intent) {
         try {
-            // Get all the car details from intent
             String nameStr = intent.getStringExtra("CAR_NAME");
             String modelStr = intent.getStringExtra("CAR_MODEL");
             String yearStr = intent.getStringExtra("YEAR");
@@ -77,9 +70,8 @@ public class CarView extends AppCompatActivity {
             String transStr = intent.getStringExtra("TRANSMISSION");
             String colorStr = intent.getStringExtra("COLOR");
             double ratingValue = intent.getDoubleExtra("RATING", 0.0);
-            String carImg = intent.getStringExtra("CAR_IMAGE");
+            String carImgPath = intent.getStringExtra("CAR_IMAGE");
 
-            // Set text values with null checks
             if (nameStr != null) carName.setText(nameStr);
             if (modelStr != null) carModel.setText("Model: " + modelStr);
             if (yearStr != null) year.setText("Year: " + yearStr);
@@ -89,22 +81,25 @@ public class CarView extends AppCompatActivity {
             if (transStr != null) transmission.setText("Transmission: " + transStr);
             if (colorStr != null) color.setText("Color: " + colorStr);
 
-            // Set rating
             ratingText.setText(String.format("Rating: %.1f ⭐", ratingValue));
             ratingBar.setRating((float) ratingValue);
 
-            // Load and display image
-            if (carImg != null && !carImg.isEmpty()) {
-                try {
-                    byte[] imgBytes = Base64.decode(carImg, Base64.DEFAULT);
-                    Bitmap bitmap = BitmapFactory.decodeByteArray(imgBytes, 0, imgBytes.length);
+            // ✅ FIXED: Load image from file path
+            if (carImgPath != null && !carImgPath.isEmpty()) {
+                File imgFile = new File(carImgPath);
+                if (imgFile.exists()) {
+                    Bitmap bitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
                     if (bitmap != null) {
                         carImageView.setImageBitmap(bitmap);
+                    } else {
+                        carImageView.setImageResource(R.drawable.cobramustanf3d);
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    Toast.makeText(this, "Error loading image", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Image file not found", Toast.LENGTH_SHORT).show();
+                    carImageView.setImageResource(R.drawable.cobramustanf3d);
                 }
+            } else {
+                carImageView.setImageResource(R.drawable.cobramustanf3d);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -113,10 +108,8 @@ public class CarView extends AppCompatActivity {
     }
 
     private void setupClickListeners() {
-        // Back button click listener
         backButton.setOnClickListener(v -> finish());
 
-        // Delete button click listener
         if (deleteBtn != null) {
             deleteBtn.setOnClickListener(v -> {
                 if (carId != -1) {
@@ -127,12 +120,10 @@ public class CarView extends AppCompatActivity {
             });
         }
 
-        // Edit button click listener
         if (editBtn != null) {
             editBtn.setOnClickListener(v -> {
                 if (carId != -1) {
                     Intent editIntent = new Intent(CarView.this, Car_Update.class);
-                    // Pass all the car details to the update activity
                     editIntent.putExtras(getIntent().getExtras());
                     startActivity(editIntent);
                 }
@@ -143,10 +134,7 @@ public class CarView extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        // Refresh the data when coming back from edit
         if (carId != -1) {
-            // You might want to reload the car data from the database here
-            // For now, we'll just use the intent data
             displayCarDetails(getIntent());
         }
     }

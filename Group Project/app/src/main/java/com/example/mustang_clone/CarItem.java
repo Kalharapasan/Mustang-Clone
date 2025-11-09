@@ -10,7 +10,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,6 +59,7 @@ public class CarItem extends AppCompatActivity {
             cursor = (categoryID != -1) ? dbHelp.getCarsByCategory(categoryID) : dbHelp.getAllCars();
 
             if (cursor != null && cursor.moveToFirst()) {
+
                 int idCol = safeColumnIndex(cursor, "carID");
                 int nameCol = safeColumnIndex(cursor, "carName");
                 int modelCol = safeColumnIndex(cursor, "carModel");
@@ -69,7 +69,7 @@ public class CarItem extends AppCompatActivity {
                 int hpCol = safeColumnIndex(cursor, "horsepower");
                 int transCol = safeColumnIndex(cursor, "transmission");
                 int colorCol = safeColumnIndex(cursor, "color");
-                int imgBlobCol = safeColumnIndex(cursor, "carImg");   // old BLOB
+                int imgPathCol = safeColumnIndex(cursor, "carImgPath");  // ✅ FIXED
                 int catCol = safeColumnIndex(cursor, "categoryID");
                 int ratingCol = safeColumnIndex(cursor, "rating");
 
@@ -86,15 +86,8 @@ public class CarItem extends AppCompatActivity {
                     int catID = catCol >= 0 ? cursor.getInt(catCol) : -1;
                     double rating = ratingCol >= 0 ? cursor.getDouble(ratingCol) : 0.0;
 
-                    String imagePath = null;
 
-                    // Prefer file path (if you saved BLOB as file in DBHelp)
-                    if (imgBlobCol >= 0) {
-                        byte[] imgBytes = cursor.getBlob(imgBlobCol);
-                        if (imgBytes != null && imgBytes.length > 0) {
-                            imagePath = dbHelp.saveBlobToFile(imgBytes, this, "car_" + id + ".jpg");
-                        }
-                    }
+                    String imagePath = imgPathCol >= 0 ? cursor.getString(imgPathCol) : null;
 
                     carList.add(new Car(id, name, model, year, generation, engineType,
                             horsepower, transmission, color, imagePath, catID, rating));
@@ -103,7 +96,7 @@ public class CarItem extends AppCompatActivity {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            Toast.makeText(this, "Error loading cars", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Error loading cars: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         } finally {
             if (cursor != null) cursor.close();
         }

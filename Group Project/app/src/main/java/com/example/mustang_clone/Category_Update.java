@@ -18,7 +18,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.imageview.ShapeableImageView;
 
-import java.io.File;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 
 public class Category_Update extends AppCompatActivity {
@@ -29,7 +29,7 @@ public class Category_Update extends AppCompatActivity {
     private ShapeableImageView backButton;
     private DBHelp dbHelp;
     private int categoryId;
-    private String savedImagePath = null;
+    private byte[] selectedImageBytes = null;
 
     private ActivityResultLauncher<Intent> imagePickerLauncher;
 
@@ -57,18 +57,14 @@ public class Category_Update extends AppCompatActivity {
             if (categoryName != null) carNameUpdate.setText(categoryName);
             if (categoryModel != null) carModelUpdate.setText(categoryModel);
 
-            // ✅ Fixed image handling (supports both Base64 and file paths)
+
             if (categoryImage != null && !categoryImage.isEmpty()) {
                 try {
-                    File imgFile = new File(categoryImage);
-                    if (imgFile.exists()) {
-                        Bitmap bitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+                    byte[] imgBytes = Base64.decode(categoryImage, Base64.DEFAULT);
+                    Bitmap bitmap = BitmapFactory.decodeByteArray(imgBytes, 0, imgBytes.length);
+                    if (bitmap != null) {
                         updateCategoryCarImage.setImageBitmap(bitmap);
-                        savedImagePath = categoryImage;
-                    } else {
-                        byte[] imgBytes = Base64.decode(categoryImage, Base64.DEFAULT);
-                        Bitmap bitmap = BitmapFactory.decodeByteArray(imgBytes, 0, imgBytes.length);
-                        updateCategoryCarImage.setImageBitmap(bitmap);
+                        selectedImageBytes = imgBytes; // Store existing image
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -77,17 +73,28 @@ public class Category_Update extends AppCompatActivity {
             }
         }
 
+
         imagePickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         Uri imageUri = result.getData().getData();
                         try {
-                            savedImagePath = imageUri.getPath();
                             InputStream inputStream = getContentResolver().openInputStream(imageUri);
                             Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-                            updateCategoryCarImage.setImageBitmap(bitmap);
-                            Toast.makeText(this, "Image selected successfully", Toast.LENGTH_SHORT).show();
+
+                            if (bitmap != null) {
+                                updateCategoryCarImage.setImageBitmap(bitmap);
+
+                                // Convert to byte array
+                                ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                                selectedImageBytes = stream.toByteArray();
+
+                                Toast.makeText(this, "Image selected successfully", Toast.LENGTH_SHORT).show();
+                            }
+
+                            if (inputStream != null) inputStream.close();
                         } catch (Exception e) {
                             e.printStackTrace();
                             Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
@@ -115,14 +122,12 @@ public class Category_Update extends AppCompatActivity {
                 return;
             }
 
-            if (savedImagePath == null) {
+            if (selectedImageBytes == null) {
                 Toast.makeText(this, "Please select an image", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            // Convert file to bytes for DB
-            byte[] imageBytes = dbHelp.readImageFile(savedImagePath);
-            int rows = dbHelp.updateCategory(categoryId, name, imageBytes, model);
+            int rows = dbHelp.updateCategory(categoryId, name, selectedImageBytes, model);
             if (rows > 0) {
                 Toast.makeText(this, "Category updated successfully", Toast.LENGTH_SHORT).show();
                 finish();
